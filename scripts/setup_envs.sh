@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "======================================"
+echo " E4L STAGING ENVIRONMENT SETUP"
+echo "======================================"
+
+# -------- helpers --------
+fail() {
+  echo "ERROR: $1"
+  exit 1
+}
+
+ok() {
+  echo "OK: $1"
+}
+
+# -------- checks --------
+command -v vagrant >/dev/null 2>&1 || fail "Vagrant is not installed"
+command -v git >/dev/null 2>&1 || fail "Git is not installed"
+command -v ansible-playbook >/dev/null 2>&1 || fail "Ansible is not installed on host"
+
+ok "Required tools found"
+
+# -------- SSH key setup --------
+echo
+echo "Setting up SSH key for Ansible..."
+
+SSH_KEY_PATH="$HOME/.ssh/devops_stage"
+
+# Create .ssh directory if it doesn't exist
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+
+# Generate SSH key if it doesn't exist
+if [ ! -f "$SSH_KEY_PATH" ]; then
+  echo "Generating SSH key at $SSH_KEY_PATH..."
+  ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -N "" -C "devops_stage_key"
+  chmod 600 "$SSH_KEY_PATH"
+  chmod 644 "${SSH_KEY_PATH}.pub"
+  ok "SSH key generated"
+else
+  ok "SSH key already exists at $SSH_KEY_PATH"
+fi
+
+# -------- paths --------
+STAGE_DIR="ansible-stage"
+
+[ -d "$STAGE_DIR" ] || fail "Directory '$STAGE_DIR' not found"
+
+cd "$STAGE_DIR"
+
+[ -f Vagrantfile ] || fail "Vagrantfile missing"
+[ -f hosts.ini ] || fail "hosts.ini file missing"
+[ -f playbook.yml ] || fail "playbook.yml file missing"
+
+ok "ansible-stage directory structure looks correct"
+
+# -------- start VM --------
+echo
+echo "Starting STAGING VM via Vagrant..."
+vagrant up
+
+ok "VM started"
+
+# -------- run ansible --------
+echo
+echo "Running Ansible provisioning..."
+ansible-playbook -i hosts.ini playbook.yml
+
+ok "Ansible provisioning completed"
+
+# -------- verify inside VM --------
+echo
+echo "Verifying environment setup inside VM..."
+
+vagrant ssh -c '
+set -e
+
+echo "--- Docker version ---"
+docker version
+
+echo
+echo "--- Docker Compose version ---"
+docker compose version
+
+echo
+echo "Environment setup completed successfully!"
+'
+
+ok "Docker and Docker Compose are installed and ready"
+
+echo
+echo "======================================"
+echo " STAGING ENVIRONMENT READY"
+echo "======================================"
+echo
+echo "The environment is now set up with:"
+echo "  - Docker and Docker Compose installed"
+echo "  - Required directories created"
+echo "  - Ready to deploy applications"
+echo
+echo "Next steps:"
+echo "  1) Deploy database using docker-compose.db.yml"
+echo "  2) Deploy backend and frontend applications as needed"
