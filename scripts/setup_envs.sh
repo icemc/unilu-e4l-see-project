@@ -18,7 +18,6 @@ ok() {
 # -------- checks --------
 command -v vagrant >/dev/null 2>&1 || fail "Vagrant is not installed"
 command -v git >/dev/null 2>&1 || fail "Git is not installed"
-command -v ansible-playbook >/dev/null 2>&1 || fail "Ansible is not installed on host"
 
 ok "Required tools found"
 
@@ -51,7 +50,6 @@ STAGE_DIR="ansible-stage"
 cd "$STAGE_DIR"
 
 [ -f Vagrantfile ] || fail "Vagrantfile missing"
-[ -f hosts.ini ] || fail "hosts.ini file missing"
 [ -f playbook.yml ] || fail "playbook.yml file missing"
 
 ok "ansible-stage directory structure looks correct"
@@ -74,16 +72,10 @@ fi
 # -------- start VM --------
 echo
 echo "Starting STAGING VM via Vagrant..."
+echo "(Ansible provisioning will run automatically inside the VM)"
 vagrant up
 
-ok "VM started"
-
-# -------- run ansible --------
-echo
-echo "Running Ansible provisioning..."
-ansible-playbook -i hosts.ini playbook.yml
-
-ok "Ansible provisioning completed"
+ok "VM started and provisioned"
 
 # -------- verify inside VM --------
 echo
