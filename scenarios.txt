@@ -2,354 +2,626 @@
                     E4L Platform - Test Scenarios
 ================================================================================
 
-This document demonstrates automated tests PASSING and FAILING for both
-codebases. Each scenario shows how to observe the test in the CI/CD pipeline.
+This document demonstrates the DevOps workflow with branch-based deployments
+and automated CI/CD pipelines. Each scenario shows how to trigger deployments
+and observe the pipeline execution.
+
+
+DEVOPS STRATEGY OVERVIEW
+================================================================================
+
+Branching Strategy:
+- dev branch  → Automatically deploys to STAGING (192.168.56.11)
+- main branch → Automatically deploys to PRODUCTION (192.168.56.12)
+
+Pipeline Structure:
+- Backend:  6 stages (pre-build, build, test, docker_build, deploy_staging, deploy_production)
+- Frontend: 3 stages (docker_build, deploy_staging, deploy_production)
+
+Deployment Method:
+- Docker images pushed to Docker Hub (docker.io/minfranco)
+- SSH deployment to Vagrant VMs
+- docker-compose pull and up commands executed on target VMs
 
 
 ================================================================================
-BACKEND TESTS (Java/Spring Boot)
+BACKEND PIPELINE SCENARIOS
 ================================================================================
 
 
-# Scenario 1: Backend Unit Test - PASSING
+# Scenario 1: Backend Build and Test - PASSING
 
 ## Goal
-Verify that backend unit tests pass in the CI/CD pipeline.
+Verify that backend builds successfully and tests pass in the CI/CD pipeline.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
 - GitLab Runner is registered and active
 - Backend repository has been seeded with source code
-- Pipeline has been triggered (via push or manual run)
+- You are on the dev branch
 
 ## Main Success Scenario
-1. Go to: http://localhost:8929/testdev/backend/-/pipelines
-2. Click on the latest pipeline
-3. View the "test" stage → "unit-test" job
-4. Observe job passes (green checkmark)
+1. Make a small code change (e.g., add a comment in a Java file)
+2. Commit and push to dev branch:
+   ```
+   git add .
+   git commit -m "Test backend pipeline"
+   git push origin dev
+   ```
+3. Go to: http://localhost:8929/testdev/backend/-/pipelines
+4. Click on the latest pipeline
+5. Observe stages execute in order:
+   - pre-build (green checkmark)
+   - build (green checkmark) - Gradle builds the JAR
+   - test (green checkmark) - JUnit tests run
+   - docker_build (green checkmark) - Docker image built and pushed
+   - deploy_staging (green checkmark) - Deployed to 192.168.56.11
 
-## Test File
-src/test/java/lu/uni/e4l/platform/service/CalculatorServiceTest.java
+## Expected Result
+- All stages pass successfully
+- Docker image pushed as: minfranco/e4l-backend-stage:latest
+- Backend running at http://localhost:8084
+
+## Verification
+- Visit http://localhost:8084 to see backend API
+- SSH to staging VM: `ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11 -p 2222`
+- Check containers: `docker ps` (should see e4l-backend container)
 
 --------------------------------------------------------------------------------
 
-# Scenario 2: Backend Unit Test - FAILING
+# Scenario 2: Backend Build - FAILING
 
 ## Goal
-Demonstrate that the pipeline fails when a unit test fails.
+Demonstrate that the pipeline fails when the build fails.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
 - Backend repository has been seeded with source code
 - User is logged in as testdev
 
 ## Main Success Scenario
 1. Go to: http://localhost:8929/testdev/backend
-2. Navigate to: src/test/java/lu/uni/e4l/platform/service/CalculatorServiceTest.java
+2. Navigate to any Java file (e.g., src/main/java/lu/uni/e4l/platform/...)
 3. Click "Edit" → "Edit single file"
-4. Find this line:
-      assertEquals(-7d, calculatorService.calculate(session).getResult(), 0.0000001);
-5. Change -7d to -999d:
-      assertEquals(-999d, calculatorService.calculate(session).getResult(), 0.0000001);
-6. Commit changes (triggers pipeline)
-7. Go to: http://localhost:8929/testdev/backend/-/pipelines
-8. Observe pipeline fails at "unit-test" job (red X)
+4. Introduce a syntax error (e.g., remove a semicolon or add invalid code):
+   ```java
+   // Add this invalid line
+   this is not valid Java code
+   ```
+5. Commit changes to dev branch (triggers pipeline)
+6. Go to: http://localhost:8929/testdev/backend/-/pipelines
+7. Observe pipeline fails at "build" stage (red X)
+8. View logs to see Gradle compilation error
 
 ## Restore
-Change -999d back to -7d and commit.
+Remove the syntax error and commit to restore.
 
 --------------------------------------------------------------------------------
 
-# Scenario 3: Backend Integration Test - PASSING
+# Scenario 3: Backend Deployment to Staging (dev branch)
 
 ## Goal
-Verify that backend integration tests (JPA + Database) pass in the CI/CD pipeline.
+Demonstrate automatic deployment to staging environment when pushing to dev branch.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
-- Backend repository has been seeded with source code
-- Pipeline has been triggered (via push or manual run)
+- Staging VM is running (192.168.56.11)
+- Backend repository has working code
+- You are on the dev branch
 
 ## Main Success Scenario
-1. Go to: http://localhost:8929/testdev/backend/-/pipelines
-2. Click on the latest pipeline
-3. View the "test" stage → "integration-test" job
-4. Observe job passes (green checkmark)
+1. Make a visible change (e.g., modify application.properties):
+   ```properties
+   # Add or modify a property
+   app.environment=staging-test-v2
+   ```
+2. Commit and push to dev branch:
+   ```
+   git add .
+   git commit -m "Update staging environment"
+   git push origin dev
+   ```
+3. Go to: http://localhost:8929/testdev/backend/-/pipelines
+4. Watch pipeline execute all stages
+5. Observe "deploy_staging" stage executes (green checkmark)
+6. Note that "deploy_production" stage is skipped (only runs on main branch)
 
-## Test File
-src/integrationTest/java/lu/uni/e4l/platform/UserRepositoryIT.java
+## Expected Result
+- Pipeline completes successfully
+- deploy_staging stage shows SSH connection to 192.168.56.11
+- Backend redeployed at http://localhost:8084
+
+## Verification
+- Visit http://localhost:8084 to verify new version
+- Check pipeline logs for: "Deploying to STAGING (192.168.56.11)"
+- SSH to VM and check: `docker logs e4l-backend`
 
 --------------------------------------------------------------------------------
 
-# Scenario 4: Backend Integration Test - FAILING
+# Scenario 4: Backend Deployment to Production (main branch)
 
 ## Goal
-Demonstrate that the pipeline fails when an integration test fails.
+Demonstrate automatic deployment to production environment when pushing to main branch.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
-- Backend repository has been seeded with source code
+- Production VM is running (192.168.56.12)
+- Backend repository has tested code on dev branch
+- You have working code on dev branch
+
+## Main Success Scenario
+1. Switch to main branch:
+   ```
+   git checkout main
+   git pull origin main
+   ```
+2. Merge dev branch into main:
+   ```
+   git merge dev
+   ```
+3. Push to main branch:
+   ```
+   git push origin main
+   ```
+4. Go to: http://localhost:8929/testdev/backend/-/pipelines
+5. Watch pipeline execute all stages
+6. Observe "deploy_production" stage executes (green checkmark)
+7. Note that "deploy_staging" stage is skipped (only runs on dev branch)
+
+## Expected Result
+- Pipeline completes successfully
+- deploy_production stage shows SSH connection to 192.168.56.12
+- Backend redeployed at http://localhost:8085
+- Docker image tagged as: minfranco/e4l-backend-prod:latest
+
+## Verification
+- Visit http://localhost:8085 to verify production deployment
+- Check pipeline logs for: "Deploying to PRODUCTION (192.168.56.12)"
+- SSH to VM: `ssh -i ~/.ssh/devops_prod vagrant@192.168.56.12 -p 2223`
+- Check containers: `docker ps`
+
+--------------------------------------------------------------------------------
+
+# Scenario 5: Backend Test Failure Prevention
+
+## Goal
+Demonstrate that failing tests prevent deployment.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- Backend repository has test files
 - User is logged in as testdev
 
 ## Main Success Scenario
 1. Go to: http://localhost:8929/testdev/backend
-2. Navigate to: src/integrationTest/java/lu/uni/e4l/platform/UserRepositoryIT.java
+2. Navigate to a test file in src/test/java/
 3. Click "Edit" → "Edit single file"
-4. Find this line:
-      assertThat(found.getEmail()).isEqualTo("integration@test.lu");
-5. Change to wrong email:
-      assertThat(found.getEmail()).isEqualTo("wrong@email.com");
-6. Commit changes (triggers pipeline)
-7. Go to: http://localhost:8929/testdev/backend/-/pipelines
-8. Observe pipeline fails at "integration-test" job (red X)
+4. Modify a test to fail (e.g., change an assertion):
+   ```java
+   // Change an assertEquals to an incorrect value
+   assertEquals(999, actualValue);
+   ```
+5. Commit changes to dev branch
+6. Go to: http://localhost:8929/testdev/backend/-/pipelines
+7. Observe pipeline fails at "test" stage (red X)
+8. Verify that docker_build and deploy_staging stages never run
+
+## Expected Result
+- Pipeline stops at test stage
+- No deployment occurs
+- Staging environment remains unchanged
 
 ## Restore
-Change back to "integration@test.lu" and commit.
-
---------------------------------------------------------------------------------
-
-# Scenario 5: Backend E2E Test (Postman/Newman) - PASSING
-
-## Goal
-Verify that backend E2E API tests pass against the deployed staging environment.
-
-## Pre-conditions
-- GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
-- Backend repository has been seeded with source code
-- Staging environment is deployed (backend running at http://localhost:8084)
-- Pipeline has completed the deploy-staging stage
-
-## Main Success Scenario
-1. Go to: http://localhost:8929/testdev/backend/-/pipelines
-2. Click on the latest pipeline
-3. View the "e2e" stage → "e2e-test" job
-4. Observe job passes (green checkmark)
-5. Log shows Newman test results:
-   - "GET /questionnaire" → Status code is 200 ✓
-   - "GET /responses/count" → Status code is 200 ✓
-   - "POST /calculate/energyConsumption" → Status code is 200 ✓
-
-## Test Files
-tests/postman/e4l-backend-e2e.collection.json
-tests/postman/staging.environment.json
-
---------------------------------------------------------------------------------
-
-# Scenario 6: Backend E2E Test (Postman/Newman) - FAILING
-
-## Goal
-Demonstrate that the pipeline fails when a backend E2E test fails.
-
-## Pre-conditions
-- GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
-- Backend repository has been seeded with source code
-- User is logged in as testdev
-
-## Main Success Scenario
-1. Go to: http://localhost:8929/testdev/backend
-2. Navigate to: tests/postman/e4l-backend-e2e.collection.json
-3. Click "Edit" → "Edit single file"
-4. Find this test assertion in "GET /questionnaire":
-      "pm.test('Status code is 200', function () {",
-      "  pm.response.to.have.status(200);",
-5. Change expected status to 404:
-      "pm.test('Status code is 200', function () {",
-      "  pm.response.to.have.status(404);",
-6. Commit changes (triggers pipeline)
-7. Go to: http://localhost:8929/testdev/backend/-/pipelines
-8. Observe pipeline fails at "e2e-test" job (red X)
-9. Log shows: "AssertionError: expected response to have status code 404 but got 200"
-
-## Restore
-Change 404 back to 200 and commit.
+Fix the test assertion and commit to restore pipeline.
 
 
 ================================================================================
-FRONTEND TESTS (React)
+FRONTEND PIPELINE SCENARIOS
 ================================================================================
 
-# Scenario 7: Frontend Unit Test - PASSING
+# Scenario 6: Frontend Docker Build and Deploy - PASSING
 
 ## Goal
-Verify that frontend unit tests pass in the CI/CD pipeline.
+Verify that frontend builds successfully and deploys to staging.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
 - GitLab Runner is registered and active
 - Frontend repository has been seeded with source code
-- Pipeline has been triggered (via push or manual run)
+- You are on the dev branch
 
 ## Main Success Scenario
-1. Go to: http://localhost:8929/testdev/frontend/-/pipelines
-2. Click on the latest pipeline
-3. View the "test" stage → "unit-test" job
-4. Observe job passes (green checkmark)
-5. Log shows: "VerticalSpace Component › renders a div with the correct height style"
+1. Make a small change to frontend code (e.g., modify a CSS file or component)
+2. Commit and push to dev branch:
+   ```
+   git add .
+   git commit -m "Test frontend pipeline"
+   git push origin dev
+   ```
+3. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+4. Click on the latest pipeline
+5. Observe stages execute in order:
+   - docker_build (green checkmark) - Docker image built and pushed
+   - deploy_staging (green checkmark) - Deployed to 192.168.56.11
 
-## Test File
-src/js/presentation/__tests__/verticalSpace.test.js
+## Expected Result
+- All stages pass successfully
+- Docker image pushed as: minfranco/e4l-frontend-stage:latest
+- Frontend running at http://localhost:8881
+
+## Verification
+- Visit http://localhost:8881 to see frontend application
+- SSH to staging VM: `ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11 -p 2222`
+- Check containers: `docker ps` (should see e4l-frontend container)
 
 --------------------------------------------------------------------------------
 
-# Scenario 8: Frontend Unit Test - FAILING
+# Scenario 7: Frontend Docker Build - FAILING
 
 ## Goal
-Demonstrate that the pipeline fails when a frontend unit test fails.
+Demonstrate that the pipeline fails when the Docker build fails.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
 - Frontend repository has been seeded with source code
 - User is logged in as testdev
 
 ## Main Success Scenario
 1. Go to: http://localhost:8929/testdev/frontend
-2. Navigate to: src/js/presentation/__tests__/verticalSpace.test.js
+2. Navigate to: Dockerfile (in e4l.frontend.docker/web/)
 3. Click "Edit" → "Edit single file"
-4. Find this line:
-      expect(wrapper.prop('style')).toHaveProperty('height', '5em');
-5. Change expected value:
-      expect(wrapper.prop('style')).toHaveProperty('height', '999em');
-6. Commit changes (triggers pipeline)
-7. Go to: http://localhost:8929/testdev/frontend/-/pipelines
-8. Observe pipeline fails at "unit-test" job (red X)
-9. Log shows: "Expected: '999em', Received: '5em'"
+4. Introduce an error in Dockerfile:
+   ```dockerfile
+   # Add an invalid instruction
+   INVALID_COMMAND this will cause build to fail
+   ```
+5. Commit changes to dev branch (triggers pipeline)
+6. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+7. Observe pipeline fails at "docker_build" stage (red X)
+8. View logs to see Docker build error
 
 ## Restore
-Change '999em' back to '5em' and commit.
+Remove the invalid instruction and commit to restore.
 
 --------------------------------------------------------------------------------
 
-# Scenario 9: Frontend Integration Test - PASSING
+# Scenario 8: Frontend Deployment to Staging (dev branch)
 
 ## Goal
-Verify that frontend integration tests (Redux store flow) pass in the CI/CD pipeline.
+Demonstrate automatic deployment to staging environment when pushing to dev branch.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
-- Frontend repository has been seeded with source code
-- Pipeline has been triggered (via push or manual run)
+- Staging VM is running (192.168.56.11)
+- Frontend repository has working code
+- You are on the dev branch
 
 ## Main Success Scenario
-1. Go to: http://localhost:8929/testdev/frontend/-/pipelines
-2. Click on the latest pipeline
-3. View the "test" stage → "integration-test" job
-4. Observe job passes (green checkmark)
-5. Log shows: "Integration: Redux Data Flow › should handle the full flow of changing language"
+1. Make a visible UI change (e.g., modify src/index.html or CSS):
+   ```html
+   <!-- Add a comment or change page title -->
+   <title>E4L Platform - Staging Test v2</title>
+   ```
+2. Commit and push to dev branch:
+   ```
+   git add .
+   git commit -m "Update staging frontend"
+   git push origin dev
+   ```
+3. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+4. Watch pipeline execute all stages
+5. Observe "deploy_staging" stage executes (green checkmark)
+6. Note that "deploy_production" stage is skipped (only runs on main branch)
 
-## Test File
-src/js/integration/__tests__/storeFlow.test.js
+## Expected Result
+- Pipeline completes successfully
+- deploy_staging stage shows SSH connection to 192.168.56.11
+- Frontend redeployed at http://localhost:8881
+
+## Verification
+- Visit http://localhost:8881 to verify new version
+- Check browser page title or UI changes
+- Check pipeline logs for: "Deploying to STAGING (192.168.56.11)"
 
 --------------------------------------------------------------------------------
 
-# Scenario 10: Frontend Integration Test - FAILING
+# Scenario 9: Frontend Deployment to Production (main branch)
 
 ## Goal
-Demonstrate that the pipeline fails when a frontend integration test fails.
+Demonstrate automatic deployment to production environment when pushing to main branch.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
-- Frontend repository has been seeded with source code
+- Production VM is running (192.168.56.12)
+- Frontend repository has tested code on dev branch
+- You have working code on dev branch
+
+## Main Success Scenario
+1. Switch to main branch:
+   ```
+   git checkout main
+   git pull origin main
+   ```
+2. Merge dev branch into main:
+   ```
+   git merge dev
+   ```
+3. Push to main branch:
+   ```
+   git push origin main
+   ```
+4. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+5. Watch pipeline execute all stages
+6. Observe "deploy_production" stage executes (green checkmark)
+7. Note that "deploy_staging" stage is skipped (only runs on dev branch)
+
+## Expected Result
+- Pipeline completes successfully
+- deploy_production stage shows SSH connection to 192.168.56.12
+- Frontend redeployed at http://localhost:8882
+- Docker image tagged as: minfranco/e4l-frontend-prod:latest
+
+## Verification
+- Visit http://localhost:8882 to verify production deployment
+- Check pipeline logs for: "Deploying to PRODUCTION (192.168.56.12)"
+- SSH to VM: `ssh -i ~/.ssh/devops_prod vagrant@192.168.56.12 -p 2223`
+- Check containers: `docker ps`
+
+--------------------------------------------------------------------------------
+
+# Scenario 10: Frontend Build Error in Webpack
+
+## Goal
+Demonstrate that build errors in webpack prevent deployment.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- Frontend repository has source code
 - User is logged in as testdev
 
 ## Main Success Scenario
 1. Go to: http://localhost:8929/testdev/frontend
-2. Navigate to: src/js/integration/__tests__/storeFlow.test.js
+2. Navigate to a JavaScript file (e.g., src/js/index.js)
 3. Click "Edit" → "Edit single file"
-4. Find this line:
-      expect(updatedState.userReducer.lang).toEqual("fr");
-5. Change expected value:
-      expect(updatedState.userReducer.lang).toEqual("de");
-6. Commit changes (triggers pipeline)
-7. Go to: http://localhost:8929/testdev/frontend/-/pipelines
-8. Observe pipeline fails at "integration-test" job (red X)
-9. Log shows: "Expected: 'de', Received: 'fr'"
+4. Introduce a syntax error:
+   ```javascript
+   // Add invalid JavaScript
+   import { something from 'nowhere';  // Missing closing brace
+   ```
+5. Commit changes to dev branch
+6. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+7. Observe pipeline fails at "docker_build" stage (red X)
+8. View logs to see webpack compilation error
+9. Verify that deploy_staging stage never runs
+
+## Expected Result
+- Pipeline stops at docker_build stage
+- No deployment occurs
+- Staging environment remains unchanged
 
 ## Restore
-Change "de" back to "fr" and commit.
+Fix the syntax error and commit to restore pipeline.
+
+
+================================================================================
+CROSS-ENVIRONMENT SCENARIOS
+================================================================================
+
+# Scenario 11: Promote from Staging to Production
+
+## Goal
+Demonstrate the workflow of testing in staging, then promoting to production.
+
+## Pre-conditions
+- Both staging and production VMs are running
+- Code is working on dev branch
+- GitLab is accessible
+
+## Main Success Scenario
+1. Develop and test changes locally
+2. Push to dev branch:
+   ```
+   git push origin dev
+   ```
+3. Wait for pipeline to complete
+4. Verify deployment on staging:
+   - Frontend: http://localhost:8881
+   - Backend: http://localhost:8084
+5. Test application functionality on staging
+6. Once satisfied, merge to main:
+   ```
+   git checkout main
+   git pull origin main
+   git merge dev
+   git push origin main
+   ```
+7. Wait for production pipeline to complete
+8. Verify deployment on production:
+   - Frontend: http://localhost:8882
+   - Backend: http://localhost:8085
+
+## Expected Result
+- Staging environment gets immediate updates from dev branch
+- Production environment only gets updates from main branch
+- Both environments remain isolated
+
+## Verification
+- Compare versions on staging vs production
+- Check Docker images: stage vs prod tags
+- Verify database isolation (e4l_stage vs e4l_prod)
 
 --------------------------------------------------------------------------------
 
-# Scenario 11: Frontend E2E Test - PASSING
+# Scenario 12: Rollback Production Deployment
 
 ## Goal
-Verify that frontend E2E tests (Puppeteer) pass against the deployed staging environment.
+Demonstrate how to rollback a production deployment if issues are found.
 
 ## Pre-conditions
-- GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
-- Frontend repository has been seeded with source code
-- Staging environment is deployed (frontend running at http://localhost:8881)
-- Pipeline has completed the deploy-staging stage
+- Production VM is running with current deployment
+- Previous working version exists in Docker Hub
+- GitLab is accessible
+
+## Main Success Scenario (Git Revert Method)
+1. Identify the problematic commit in main branch
+2. Revert the commit:
+   ```
+   git revert <commit-hash>
+   git push origin main
+   ```
+3. Pipeline automatically runs and deploys previous version
+4. Verify production is back to working state
+
+## Alternative Method (Manual Docker)
+1. SSH to production VM:
+   ```
+   ssh -i ~/.ssh/devops_prod vagrant@192.168.56.12 -p 2223
+   ```
+2. Pull specific image version:
+   ```
+   docker pull minfranco/e4l-backend-prod:<previous-tag>
+   ```
+3. Update docker-compose to use specific tag
+4. Restart containers:
+   ```
+   docker-compose up -d
+   ```
+
+## Verification
+- Verify application functionality restored
+- Check application version/logs
+- Monitor for errors
+
+
+================================================================================
+MONITORING AND DEBUGGING SCENARIOS
+================================================================================
+
+# Scenario 13: View Pipeline Logs for Failed Deployment
+
+## Goal
+Debug a failed deployment by examining pipeline logs.
+
+## Pre-conditions
+- A pipeline has failed during deployment stage
+- User is logged in to GitLab
 
 ## Main Success Scenario
-1. Go to: http://localhost:8929/testdev/frontend/-/pipelines
-2. Click on the latest pipeline
-3. View the "e2e" stage → "e2e-test" job
-4. Observe job passes (green checkmark)
-5. Log shows: "E2E: Home Page › should display the correct page title"
+1. Go to: http://localhost:8929/testdev/backend/-/pipelines (or frontend)
+2. Click on the failed pipeline (red X)
+3. Click on the failed stage (e.g., deploy_staging)
+4. Examine the logs for error messages:
+   - SSH connection errors
+   - docker-compose errors
+   - Permission issues
+   - Network connectivity problems
+5. Identify the root cause
+6. Fix the issue and retry
 
-## Test File
-src/e2e/home.e2e.test.js
+## Common Errors
+- SSH key permission denied → Check SSH key configuration
+- docker-compose command not found → Check VM provisioning
+- Cannot pull image → Check Docker Hub credentials or image name
+- Port already in use → Check for conflicting containers
 
 --------------------------------------------------------------------------------
 
-# Scenario 12: Frontend E2E Test - FAILING
+# Scenario 14: Verify Deployment on VM
 
 ## Goal
-Demonstrate that the pipeline fails when a frontend E2E test fails.
+Manually verify that deployment succeeded on the target VM.
 
 ## Pre-conditions
-- GitLab is up and running at http://localhost:8929
-- GitLab Runner is registered and active
-- Frontend repository has been seeded with source code
-- User is logged in as testdev
+- Pipeline shows successful deployment
+- SSH key is configured
 
 ## Main Success Scenario
-1. Go to: http://localhost:8929/testdev/frontend
-2. Navigate to: .gitlab-ci.yml
-3. Click "Edit" → "Edit single file"
-4. Find the e2e-test job command:
-      npm run test:e2e -- src/e2e/home.e2e.test.js
-5. Change to run the intentionally failing test:
-      npm run test:e2e -- src/e2e/failing.e2e.test.js
-6. Commit changes (triggers pipeline)
-7. Go to: http://localhost:8929/testdev/frontend/-/pipelines
-8. Observe pipeline fails at "e2e-test" job (red X)
-9. Log shows: "expect(received).toContain(expected) - Expected: 'Calculate energy score'"
+1. SSH to staging VM:
+   ```
+   ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11 -p 2222
+   ```
+2. Check running containers:
+   ```
+   docker ps
+   ```
+3. Verify expected containers are running:
+   - e4l-backend
+   - e4l-frontend
+   - e4l-db
+4. Check container logs:
+   ```
+   docker logs e4l-backend
+   docker logs e4l-frontend
+   docker logs e4l-db
+   ```
+5. Verify networking:
+   ```
+   docker network ls
+   docker network inspect devops-net
+   ```
+6. Check application accessibility from VM:
+   ```
+   curl http://localhost:8080  # Backend
+   curl http://localhost:80    # Frontend
+   ```
 
-## Notes
-The file src/e2e/failing.e2e.test.js is intentionally designed to fail.
-It expects "Calculate energy score" button to be visible without selecting audience first.
+## Expected Result
+- All containers running and healthy
+- Logs show no errors
+- Applications responding to requests
 
-## Restore
-Change back to src/e2e/home.e2e.test.js and commit.
+--------------------------------------------------------------------------------
+
+# Scenario 15: Compare Staging and Production Environments
+
+## Goal
+Verify that staging and production are properly isolated.
+
+## Pre-conditions
+- Both environments are deployed
+- User has SSH access to both VMs
+
+## Main Success Scenario
+1. Check staging:
+   - SSH: `ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11 -p 2222`
+   - Docker images: `docker images | grep e4l`
+   - Database: `docker exec e4l-db mysql -u root -p -e "SHOW DATABASES;"`
+2. Check production:
+   - SSH: `ssh -i ~/.ssh/devops_prod vagrant@192.168.56.12 -p 2223`
+   - Docker images: `docker images | grep e4l`
+   - Database: `docker exec e4l-db mysql -u root -p -e "SHOW DATABASES;"`
+3. Compare:
+   - Different image tags (stage vs prod)
+   - Different working directories (/opt/e4l vs /opt/e4l-prod)
+   - Different databases (e4l_stage vs e4l_prod)
+   - Different external ports (8881/8084 vs 8882/8085)
+
+## Expected Result
+- Complete isolation between environments
+- Staging changes don't affect production
+- Different data in each database
 
 
 ================================================================================
 SUMMARY TABLE
 ================================================================================
 
-| #  | Codebase | Test Type   | Tool           | Scenario | File to Modify              |
-|----|----------|-------------|----------------|----------|------------------------------|
-| 1  | Backend  | Unit        | JUnit          | PASSING  | (none)                       |
-| 2  | Backend  | Unit        | JUnit          | FAILING  | CalculatorServiceTest.java   |
-| 3  | Backend  | Integration | JUnit+H2       | PASSING  | (none)                       |
-| 4  | Backend  | Integration | JUnit+H2       | FAILING  | UserRepositoryIT.java        |
-| 5  | Backend  | E2E         | Newman/Postman | PASSING  | (none)                       |
-| 6  | Backend  | E2E         | Newman/Postman | FAILING  | e4l-backend-e2e.collection   |
-| 7  | Frontend | Unit        | Jest/Enzyme    | PASSING  | (none)                       |
-| 8  | Frontend | Unit        | Jest/Enzyme    | FAILING  | verticalSpace.test.js        |
-| 9  | Frontend | Integration | Jest/Redux     | PASSING  | (none)                       |
-| 10 | Frontend | Integration | Jest/Redux     | FAILING  | storeFlow.test.js            |
-| 11 | Frontend | E2E         | Puppeteer      | PASSING  | (none)                       |
-| 12 | Frontend | E2E         | Puppeteer      | FAILING  | .gitlab-ci.yml               |
+| #  | Scenario Type         | Branch | Target Env | Outcome  | Key Learning                |
+|----|-----------------------|--------|------------|----------|------------------------------|
+| 1  | Backend Build         | dev    | Staging    | SUCCESS  | Pipeline stages execute      |
+| 2  | Backend Build Failure | dev    | None       | FAILURE  | Build errors block pipeline  |
+| 3  | Backend to Staging    | dev    | Staging    | SUCCESS  | Auto-deploy on dev push      |
+| 4  | Backend to Production | main   | Production | SUCCESS  | Auto-deploy on main push     |
+| 5  | Backend Test Failure  | dev    | None       | FAILURE  | Tests block deployment       |
+| 6  | Frontend Build        | dev    | Staging    | SUCCESS  | Docker build and deploy      |
+| 7  | Frontend Build Fail   | dev    | None       | FAILURE  | Docker errors block pipeline |
+| 8  | Frontend to Staging   | dev    | Staging    | SUCCESS  | Auto-deploy on dev push      |
+| 9  | Frontend to Production| main   | Production | SUCCESS  | Auto-deploy on main push     |
+| 10 | Frontend Webpack Fail | dev    | None       | FAILURE  | Build errors block deploy    |
+| 11 | Staging → Production  | both   | Both       | SUCCESS  | Full promotion workflow      |
+| 12 | Rollback Production   | main   | Production | SUCCESS  | Recovery from bad deploy     |
+| 13 | Debug Failed Deploy   | any    | Any        | DEBUG    | Troubleshooting pipelines    |
+| 14 | Verify VM Deployment  | any    | Any        | VERIFY   | Manual deployment checks     |
+| 15 | Environment Isolation | both   | Both       | VERIFY   | Staging vs production        |
 
 ================================================================================
