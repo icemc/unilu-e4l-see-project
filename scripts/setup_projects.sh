@@ -39,18 +39,54 @@ fi
 
 echo "User '$USER_USERNAME' exists with ID: $USER_ID"
 
-# 3. Create Projects
+# 3. Create Projects (empty repos)
 echo "Creating 'backend' repository..."
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
-     --data "name=backend&user_id=$USER_ID&visibility=public" \
+     --data "name=backend&user_id=$USER_ID&visibility=public&default_branch=main" \
      "$GITLAB_URL/api/v4/projects/user/$USER_ID" > /dev/null
 
 echo "Creating 'frontend' repository..."
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
-     --data "name=frontend&user_id=$USER_ID&visibility=public" \
+     --data "name=frontend&user_id=$USER_ID&visibility=public&default_branch=main" \
      "$GITLAB_URL/api/v4/projects/user/$USER_ID" > /dev/null
+
+sleep 2
+
+# 4. Push backend code to both branches
+echo "Pushing backend code..."
+cd repos/backende4l
+git init
+git checkout -b main
+git add .
+git commit -m "Initial backend commit"
+git remote add origin "$GITLAB_URL/$USER_USERNAME/backend.git"
+git push -f origin main
+
+# Create dev branch from main
+git checkout -b dev
+git push -f origin dev
+
+cd ../..
+
+# 5. Push frontend code to both branches
+echo "Pushing frontend code..."
+cd repos/frontende4l
+git init
+git checkout -b main
+git add .
+git commit -m "Initial frontend commit"
+git remote add origin "$GITLAB_URL/$USER_USERNAME/frontend.git"
+git push -f origin main
+
+# Create dev branch from main
+git checkout -b dev
+git push -f origin dev
+
+cd ../..
 
 echo "=== Provisioning Complete ==="
 echo "Credentials: $USER_USERNAME / $USER_PASSWORD"
 echo "Backend Repo: $GITLAB_URL/$USER_USERNAME/backend.git"
+echo "  - Branches: main, dev"
 echo "Frontend Repo: $GITLAB_URL/$USER_USERNAME/frontend.git"
+echo "  - Branches: main, dev"
