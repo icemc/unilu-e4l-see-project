@@ -55,7 +55,7 @@ register_for_project() {
       --run-untagged="true" \
       --locked="false" \
       --access-level="not_protected" \
-      --docker-privileged \
+      --docker-privileged=true \
       --docker-volumes "/var/run/docker.sock:/var/run/docker.sock" \
       --docker-volumes "/cache"
     
