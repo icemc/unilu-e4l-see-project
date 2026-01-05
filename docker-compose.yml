@@ -41,18 +41,16 @@ services:
     image: 'gitlab/gitlab-runner:latest'
     container_name: gitlab-runner
     restart: always
+    network_mode: "host"  # Use host network to access VirtualBox VMs
     depends_on:
       gitlab:
         condition: service_healthy
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
       - './runner-config:/etc/gitlab-runner'
-    networks:
-      - devops-net
     extra_hosts:
-      - "gitlab:host-gateway"
-      - "gitlab.example.com:host-gateway"
-      # - "gitlab-registry.local:host-gateway"
+      - "gitlab:127.0.0.1"
+      - "gitlab.example.com:127.0.0.1"
 
 
 networks:
