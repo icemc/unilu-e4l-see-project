@@ -51,6 +51,7 @@ register_for_project() {
       --docker-image "alpine:latest" \
       --description "$RUNNER_NAME" \
       --docker-network-mode "$NETWORK_NAME" \
+      --tag-list "e4l-server,juno" \
       --run-untagged="true" \
       --locked="false" \
       --access-level="not_protected" \
