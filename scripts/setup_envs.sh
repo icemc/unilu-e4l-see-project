@@ -83,6 +83,15 @@ setup_env() {
   
   ok "$ENV_DIR directory structure looks correct"
   
+  # Copy SSH public key to environment directory for provisioning
+  if [ "$ENV_NAME" == "STAGING" ]; then
+    cp "$SSH_KEY_STAGE.pub" "$HOME/.ssh/devops_stage.pub"
+    echo "Copied staging SSH public key"
+  elif [ "$ENV_NAME" == "PRODUCTION" ]; then
+    cp "$SSH_KEY_PROD.pub" "$HOME/.ssh/devops_prod.pub"
+    echo "Copied production SSH public key"
+  fi
+  
   # Clean up any existing VM
   echo
   echo "Checking for existing $ENV_NAME VM..."

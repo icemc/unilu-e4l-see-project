@@ -49,6 +49,19 @@
         groups: docker
         append: yes
 
+    - name: Authorize devops SSH key for CI/CD access
+      shell: |
+        mkdir -p /home/vagrant/.ssh
+        if [ -f "$HOME/.ssh/devops_stage.pub" ]; then
+          cat "$HOME/.ssh/devops_stage.pub" >> /home/vagrant/.ssh/authorized_keys
+        fi
+        chmod 700 /home/vagrant/.ssh
+        chmod 600 /home/vagrant/.ssh/authorized_keys
+        chown -R vagrant:vagrant /home/vagrant/.ssh
+      args:
+        creates: /home/vagrant/.ssh/authorized_keys
+      become: true
+
     - name: Create DB persistent volume dir
       file:
         path: /opt/e4l-mysql
