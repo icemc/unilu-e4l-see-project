@@ -154,8 +154,6 @@ fi
   
   cd ..
 }
-  cd ..
-}
 
 # -------- Setup both environments --------
 # Setup Staging
