@@ -55,29 +55,31 @@ sleep 2
 # 4. Add CI/CD variables
 echo "Adding CI/CD variables to backend..."
 
-# Read the SSH private key
-SSH_PRIVATE_KEY=$(cat ~/.ssh/devops_stage)
+# Read the SSH private keys
+SSH_PRIVATE_KEY_STAGE=$(cat ~/.ssh/devops_stage)
+SSH_PRIVATE_KEY_PROD=$(cat ~/.ssh/devops_prod)
 
-# Backend variables
+# Backend variables (shared)
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
      --form "key=CI_REGISTRY" --form "value=docker.io" > /dev/null
 
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
+     --form "key=CI_REGISTRY_PASSWORD" --form "value=dckr_pat_6JW_HoxEZ7uCR1goZfLYZeoT8CY" --form "masked=true" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
+     --form "key=CI_REGISTRY_USER" --form "value=minfranco" > /dev/null
+
+# Backend STAGING variables
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
      --form "key=STAGE_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-backend-stage" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=CI_REGISTRY_PASSWORD" --form "value=dckr_pat_6JW_HoxEZ7uCR1goZfLYZeoT8CY" --form "masked=true" > /dev/null
-
-curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
-     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=CI_REGISTRY_USER" --form "value=minfranco" > /dev/null
-
-curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
-     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=STAGE_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY" --form "masked=true" > /dev/null
+     --form "key=STAGE_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY_STAGE" --form "masked=true" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
@@ -95,28 +97,54 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
      --form "key=STAGE_USER" --form "value=vagrant" > /dev/null
 
+# Backend PRODUCTION variables
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
+     --form "key=PROD_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-backend-prod" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
+     --form "key=PROD_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY_PROD" --form "masked=true" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
+     --form "key=PROD_HOST" --form "value=172.27.224.1" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
+     --form "key=PROD_PATH" --form "value=/opt/e4l-prod" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
+     --form "key=PROD_SSH_PORT" --form "value=2223" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
+     --form "key=PROD_USER" --form "value=vagrant" > /dev/null
+
 echo "Adding CI/CD variables to frontend..."
 
-# Frontend variables
+# Frontend variables (shared)
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
      --form "key=CI_REGISTRY" --form "value=docker.io" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
-     --form "key=STAGE_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-frontend-stage" > /dev/null
-
-curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
-     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
      --form "key=CI_REGISTRY_PASSWORD" --form "value=dckr_pat_6JW_HoxEZ7uCR1goZfLYZeoT8CY" --form "masked=true" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
      --form "key=CI_REGISTRY_USER" --form "value=minfranco" > /dev/null
 
+# Frontend STAGING variables
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
-     --form "key=STAGE_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY" --form "masked=true" > /dev/null
+     --form "key=STAGE_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-frontend-stage" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
+     --form "key=STAGE_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY_STAGE" --form "masked=true" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
@@ -133,6 +161,31 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
      --form "key=STAGE_USER" --form "value=vagrant" > /dev/null
+
+# Frontend PRODUCTION variables
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
+     --form "key=PROD_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-frontend-prod" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
+     --form "key=PROD_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY_PROD" --form "masked=true" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
+     --form "key=PROD_HOST" --form "value=172.27.224.1" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
+     --form "key=PROD_PATH" --form "value=/opt/e4l-prod" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
+     --form "key=PROD_SSH_PORT" --form "value=2223" > /dev/null
+
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
+     --form "key=PROD_USER" --form "value=vagrant" > /dev/null
 
 # 5. Push backend code to both branches
 echo "Pushing backend code..."

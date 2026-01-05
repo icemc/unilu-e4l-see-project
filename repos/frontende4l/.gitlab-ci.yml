@@ -5,6 +5,7 @@ variables:
 stages:
   - docker_build
   - deploy_staging
+  - deploy_production
 
 services:
   - name: docker:24-dind
@@ -16,16 +17,23 @@ docker_build_frontend:
   tags: [juno]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
   script:
     - docker version
 
     # Docker Hub login (CI_REGISTRY=docker.io)
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
-    # Build + push (STAGE_CI_REGISTRY_IMAGE=minfranco/e4l-frontend)
-    - docker build -t "$STAGE_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
-    - docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
+    # Build + push based on branch
+    - |
+      if [ "$CI_COMMIT_BRANCH" == "dev" ]; then
+        docker build -t "$STAGE_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
+        docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
+      elif [ "$CI_COMMIT_BRANCH" == "main" ]; then
+        docker build -t "$PROD_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
+        docker push "$PROD_CI_REGISTRY_IMAGE:latest"
+      fi
 
 deploy_staging_frontend:
   stage: deploy_staging
@@ -34,13 +42,13 @@ deploy_staging_frontend:
   needs: ["docker_build_frontend"]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
 
   before_script:
     - apk add --no-cache openssh-client bash coreutils
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+    - printf '%s\n' "$STAGE_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - printf "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
 
@@ -69,3 +77,45 @@ deploy_staging_frontend:
          docker compose -f docker-compose.frontend.staging.yml pull;
          docker compose -f docker-compose.frontend.staging.yml up -d --remove-orphans;
          docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep e4l-frontend-staging || true"
+
+deploy_production_frontend:
+  stage: deploy_production
+  image: alpine:3.20
+  tags: [juno]
+  needs: ["docker_build_frontend"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+  before_script:
+    - apk add --no-cache openssh-client bash coreutils
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - printf '%s\n' "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - printf "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+
+  script:
+    - |
+      set -euo pipefail
+
+      PROD_HOST_CLEAN="$(printf '%s' "$PROD_HOST" | tr -d '\r\n')"
+      PROD_USER_CLEAN="$(printf '%s' "$PROD_USER" | tr -d '\r\n')"
+      PROD_PORT_CLEAN="$(printf '%s' "$PROD_SSH_PORT" | tr -d '\r\n')"
+      PROD_PATH_CLEAN="$(printf '%s' "$PROD_PATH" | tr -d '\r\n')"
+
+      # Stavi compose na VM
+      ssh -p "$PROD_PORT_CLEAN" "$PROD_USER_CLEAN@$PROD_HOST_CLEAN" \
+        "mkdir -p '$PROD_PATH_CLEAN/e4l.frontend.docker'"
+
+      scp -P "$PROD_PORT_CLEAN" e4l.frontend.docker/docker-compose.frontend.prod.yml \
+        "$PROD_USER_CLEAN@$PROD_HOST_CLEAN:$PROD_PATH_CLEAN/e4l.frontend.docker/docker-compose.frontend.prod.yml"
+
+      # Deploy: login na docker.io + pull + up
+      ssh -p "$PROD_PORT_CLEAN" "$PROD_USER_CLEAN@$PROD_HOST_CLEAN" \
+        "set -euo pipefail;
+         cd '$PROD_PATH_CLEAN/e4l.frontend.docker';
+         echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
+         export FRONTEND_IMAGE='${PROD_CI_REGISTRY_IMAGE}';
+         docker compose -f docker-compose.frontend.prod.yml pull;
+         docker compose -f docker-compose.frontend.prod.yml up -d --remove-orphans;
+         docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep e4l-frontend-prod || true"

@@ -1,0 +1,23 @@
+---
+- name: Deploy to PRODUCTION
+  hosts: prod
+  become: yes
+
+  tasks:
+    - name: Ensure /opt/prod-frontend exists
+      file:
+        path: /opt/prod-frontend
+        state: directory
+        mode: '0755'
+
+    - name: Create simple index.html as placeholder
+      copy:
+        dest: /opt/prod-frontend/index.html
+        content: |
+          <html>
+            <head><title>Production Frontend</title></head>
+            <body>
+              <h1>Production frontend deployed via Ansible 🚀</h1>
+            </body>
+          </html>
+        mode: '0644'
