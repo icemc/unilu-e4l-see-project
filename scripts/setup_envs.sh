@@ -83,13 +83,13 @@ setup_env() {
   
   ok "$ENV_DIR directory structure looks correct"
   
-  # Copy SSH public key to environment directory for provisioning
+  # Copy SSH public key to environment directory so it's accessible via /vagrant in VM
   if [ "$ENV_NAME" == "STAGING" ]; then
-    cp "$SSH_KEY_STAGE.pub" "$HOME/.ssh/devops_stage.pub"
-    echo "Copied staging SSH public key"
+    cp "$SSH_KEY_STAGE.pub" ./devops_stage_key.pub
+    echo "Copied staging SSH public key to $ENV_DIR/devops_stage_key.pub"
   elif [ "$ENV_NAME" == "PRODUCTION" ]; then
-    cp "$SSH_KEY_PROD.pub" "$HOME/.ssh/devops_prod.pub"
-    echo "Copied production SSH public key"
+    cp "$SSH_KEY_PROD.pub" ./devops_prod_key.pub
+    echo "Copied production SSH public key to $ENV_DIR/devops_prod_key.pub"
   fi
   
   # Clean up any existing VM

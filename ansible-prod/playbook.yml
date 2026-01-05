@@ -52,8 +52,8 @@
     - name: Authorize devops SSH key for CI/CD access
       shell: |
         mkdir -p /home/vagrant/.ssh
-        if [ -f "$HOME/.ssh/devops_prod.pub" ]; then
-          cat "$HOME/.ssh/devops_prod.pub" >> /home/vagrant/.ssh/authorized_keys
+        if [ -f "/vagrant/devops_prod_key.pub" ]; then
+          cat "/vagrant/devops_prod_key.pub" >> /home/vagrant/.ssh/authorized_keys
         fi
         chmod 700 /home/vagrant/.ssh
         chmod 600 /home/vagrant/.ssh/authorized_keys
