@@ -8,13 +8,7 @@ stages:
 - build
 - test
 - docker build
-- backup db staging
 - deploy staging
-- backup db pre-prod
-- deploy pre-prod
-- test pre-prod
-- backup db prod
-- deploy prod
 
 services:
 - name: docker:dind
@@ -85,8 +79,8 @@ docker:
   script:
   #- docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
   - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-  - docker build --pull -t "$CI_REGISTRY_IMAGE:latest" .
-  - docker push "$CI_REGISTRY_IMAGE:latest"
+  - docker build --pull -t "$STAGE_CI_REGISTRY_IMAGE:latest" .
+  - docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
   #- docker build -t registry.gitlab.uni.lu/e4l/lu.uni.e4l.platform.api.dev .
   #- docker push registry.gitlab.uni.lu/e4l/lu.uni.e4l.platform.api.dev
   cache:
@@ -95,16 +89,6 @@ docker:
     paths:
     - build
     - .gradle
-
-db_backup_staging:
-  stage: backup db staging
-  image: alpine:3.20
-  tags: [juno]
-  rules:
-    - when: manual
-  allow_failure: true
-  script:
-    - echo "Backup skipped (manual)."
 
 
 deploy_staging:
@@ -169,100 +153,3 @@ deploy_staging:
 
   environment:
     name: staging
-
-db_backup_preprod:
-  allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  image: docker:latest
-  stage: backup db pre-prod
-  tags: [e4l-server]
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - DB_OUT_FILENAME=e4l-$CURRENT_DATETIME.sql
-    - docker exec e4l-db bash -c "mysqldump -u$MYSQL_USERNAME -p$MYSQL_PASSWORD e4lPreprod > e4l-preprod-backup-latest.sql; mv e4l-preprod-backup-latest.sql $DUMP_DIR/$DB_OUT_FILENAME"
-
-deploy_preprod:
-  rules:
-  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  image: tmaier/docker-compose:latest
-  stage: deploy pre-prod
-  tags: [e4l-server]
-  script:
-    #- docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker pull "$CI_REGISTRY_IMAGE:latest"
-    - docker tag "$CI_REGISTRY_IMAGE:latest" "$CI_REGISTRY_IMAGE:rc"
-    - docker push "$CI_REGISTRY_IMAGE:rc"
-    - docker-compose -f ./docker/docker-compose.db.yml up -d
-    - docker-compose -f ./docker/docker-compose.backend.pre-prod.yml pull
-    - docker compose -f ./docker/docker-compose.backend.pre-prod.yml up -d
-  environment:
-    name: preprod
-    url: https://stage-e4l.uni.lu/e4lapi/
-
-prepare-user:
-  stage: test pre-prod
-  image: docker:latest
-  tags: [e4l-server] 
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker exec e4l-db bash -c "mysql -u$MYSQL_USERNAME -p$MYSQL_PASSWORD -e 'UPDATE user SET password=\"$FAKE_PASSWORD\" WHERE email=\"$ADMIN_EMAIL\";' e4lPreprod"
-
-automated-api-tests:
- stage: test pre-prod
- image: 
-    name: postman/newman
-    entrypoint: [""]
- tags: [e4l-server]  
- script:
-   - newman run "https://api.postman.com/collections/15310155-b40ac70f-db06-4ad4-95a4-229187c0e4d1?apikey=$POSTMAN_API_KEY" --environment "https://api.getpostman.com/environments/15310155-0df15703-da50-4b96-aa0e-7406842e8df0?apikey=$POSTMAN_API_KEY"
-   - newman run "https://api.postman.com/collections/15310155-87c057c6-b97c-4665-ae47-91017862cbfb?apikey=$POSTMAN_API_KEY" --environment "https://api.getpostman.com/environments/15310155-0df15703-da50-4b96-aa0e-7406842e8df0?apikey=$POSTMAN_API_KEY"
-   - newman run "https://api.postman.com/collections/15310155-d640a844-247d-41d2-a6cf-f3110a75e331?apikey=$POSTMAN_API_KEY" --environment "https://api.getpostman.com/environments/15310155-0df15703-da50-4b96-aa0e-7406842e8df0?apikey=$POSTMAN_API_KEY"
-   - newman run "https://api.postman.com/collections/15310155-4f68ae49-f089-4595-8dfe-fc4de0bc8996?apikey=$POSTMAN_API_KEY" --environment "https://api.getpostman.com/environments/15310155-0df15703-da50-4b96-aa0e-7406842e8df0?apikey=$POSTMAN_API_KEY" -n 30
-   - newman run "https://api.postman.com/collections/15310155-4117635f-5279-473d-8599-941cf7e61299?apikey=$POSTMAN_API_KEY" --environment "https://api.getpostman.com/environments/15310155-0df15703-da50-4b96-aa0e-7406842e8df0?apikey=$POSTMAN_API_KEY" -n 30
-   - newman run "https://api.postman.com/collections/15310155-c3623be0-f1c5-404d-ad8f-6541530157ab?apikey=$POSTMAN_API_KEY" --environment "https://api.getpostman.com/environments/15310155-0df15703-da50-4b96-aa0e-7406842e8df0?apikey=$POSTMAN_API_KEY" -n 40
-   - newman run "https://api.postman.com/collections/15310155-a2f1a88a-1a80-4d97-84d0-6b4456b68d17?apikey=$POSTMAN_API_KEY" --environment "https://api.getpostman.com/environments/15310155-0df15703-da50-4b96-aa0e-7406842e8df0?apikey=$POSTMAN_API_KEY" -n 40
-   - newman run "https://api.postman.com/collections/15310155-75b13877-f38d-462b-988a-8b81d00d7dca?apikey=$POSTMAN_API_KEY" --environment "https://api.getpostman.com/environments/15310155-0df15703-da50-4b96-aa0e-7406842e8df0?apikey=$POSTMAN_API_KEY"
-
-return-user:
-  stage: test pre-prod
-  image: docker:latest
-  tags: [e4l-server] 
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker exec e4l-db bash -c "mysql -u$MYSQL_USERNAME -p$MYSQL_PASSWORD -e 'UPDATE user SET password=\"$ADMIN_PASSWORD_HASHED\" WHERE email=\"$ADMIN_EMAIL\";' e4lPreprod"
-  when: always
-  
-db_backup_prod:
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  image: docker:latest
-  stage: backup db prod
-  tags: [e4l-server]
-  when: manual
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - DB_OUT_FILENAME=e4l-$CURRENT_DATETIME.sql
-    - docker exec e4l-db bash -c "mysqldump -u$MYSQL_USERNAME -p$MYSQL_PASSWORD e4lProd > e4l-prod-backup-latest.sql; mv e4l-prod-backup-latest.sql $DUMP_DIR/$DB_OUT_FILENAME"
-
-deploy_prod:
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  image: tmaier/docker-compose:latest
-  stage: deploy prod
-  tags: [e4l-server]
-  when: manual
-  script:
-    #- docker login -u "$DOCKER_HUB_USER" -p "$DOCKER_HUB_PASSWORD"
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker pull "$CI_REGISTRY_IMAGE:rc"
-    - docker tag "$CI_REGISTRY_IMAGE:rc" "$CI_REGISTRY_IMAGE:release"
-    - docker push "$CI_REGISTRY_IMAGE:release"
-    - docker-compose -f ./docker/docker-compose.db.yml up -d
-    - docker-compose -f ./docker/docker-compose.backend.prod.yml pull
-    - docker compose -f ./docker/docker-compose.backend.prod.yml up -d
-  environment:
-    name: prod
-    url: https://e4l.uni.lu/e4lapi/
-

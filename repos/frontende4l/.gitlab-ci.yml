@@ -23,9 +23,9 @@ docker_build_frontend:
     # Docker Hub login (CI_REGISTRY=docker.io)
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
-    # Build + push (CI_REGISTRY_IMAGE=minfranco/e4l-frontend)
-    - docker build -t "$CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
-    - docker push "$CI_REGISTRY_IMAGE:latest"
+    # Build + push (STAGE_CI_REGISTRY_IMAGE=minfranco/e4l-frontend)
+    - docker build -t "$STAGE_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
+    - docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
 
 deploy_staging_frontend:
   stage: deploy_staging
@@ -65,7 +65,7 @@ deploy_staging_frontend:
         "set -euo pipefail;
          cd '$STAGE_PATH_CLEAN/e4l.frontend.docker';
          echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
-         export FRONTEND_IMAGE='${CI_REGISTRY_IMAGE}';
+         export FRONTEND_IMAGE='${STAGE_CI_REGISTRY_IMAGE}';
          docker compose -f docker-compose.frontend.staging.yml pull;
          docker compose -f docker-compose.frontend.staging.yml up -d --remove-orphans;
          docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep e4l-frontend-staging || true"
