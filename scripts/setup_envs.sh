@@ -57,6 +57,17 @@ fi
 setup_env() {
   local ENV_NAME=$1
   local ENV_DIR=$2
+  local STARTING_DIR=$(pwd)
+  
+  # Automatically determine work directory based on environment
+  local WORK_DIR
+  if [ "$ENV_NAME" == "STAGING" ]; then
+    WORK_DIR="/opt/e4l"
+  elif [ "$ENV_NAME" == "PRODUCTION" ]; then
+    WORK_DIR="/opt/e4l-prod"
+  else
+    fail "Unknown environment: $ENV_NAME"
+  fi
   
   echo
   echo "======================================"
@@ -119,7 +130,7 @@ echo "Environment setup completed successfully!"
   echo
   echo "Deploying database on $ENV_NAME..."
   
-  vagrant ssh -c '
+  vagrant ssh -c "
 set -e
 
 # Set database environment variables
@@ -128,31 +139,31 @@ export MYSQL_PASSWORD=e4l_secure_password
 export DUMP_DIR=/opt/dumps
 
 # Navigate to working directory
-cd /opt/e4l* 2>/dev/null || cd /opt/e4l
+cd $WORK_DIR
 
 # Copy docker-compose file
 if [ -f /vagrant/docker-compose.db.yml ]; then
   cp /vagrant/docker-compose.db.yml ./docker-compose.db.yml
   
-  echo "Starting database container..."
+  echo 'Starting database container...'
   docker compose -f docker-compose.db.yml up -d
   
-  echo "Waiting for database to be ready..."
+  echo 'Waiting for database to be ready...'
   sleep 10
   
-  echo "Database container status:"
-  docker ps | grep db || echo "Database container not found"
+  echo 'Database container status:'
+  docker ps | grep db || echo 'Database container not found'
   
-  echo "Database deployed successfully!"
+  echo 'Database deployed successfully!'
 else
-  echo "ERROR: docker-compose.db.yml not found"
+  echo 'ERROR: docker-compose.db.yml not found'
   exit 1
 fi
-'
+"
   
   ok "$ENV_NAME: Database deployed and running"
   
-  cd ..
+  cd "$STARTING_DIR"
 }
 
 # -------- Setup both environments --------
