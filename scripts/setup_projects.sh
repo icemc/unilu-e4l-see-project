@@ -83,7 +83,7 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=STAGE_HOST" --form "value=172.27.224.1" > /dev/null
+     --form "key=STAGE_HOST" --form "value=192.168.56.11" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
@@ -91,7 +91,7 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=STAGE_SSH_PORT" --form "value=2222" > /dev/null
+     --form "key=STAGE_SSH_PORT" --form "value=22" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
@@ -108,7 +108,7 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=PROD_HOST" --form "value=172.27.224.1" > /dev/null
+     --form "key=PROD_HOST" --form "value=192.168.56.12" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
@@ -116,7 +116,7 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=PROD_SSH_PORT" --form "value=2223" > /dev/null
+     --form "key=PROD_SSH_PORT" --form "value=22" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
@@ -148,7 +148,7 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
-     --form "key=STAGE_HOST" --form "value=172.27.224.1" > /dev/null
+     --form "key=STAGE_HOST" --form "value=192.168.56.11" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
@@ -156,7 +156,7 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
-     --form "key=STAGE_SSH_PORT" --form "value=2222" > /dev/null
+     --form "key=STAGE_SSH_PORT" --form "value=22" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
@@ -173,7 +173,7 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
-     --form "key=PROD_HOST" --form "value=172.27.224.1" > /dev/null
+     --form "key=PROD_HOST" --form "value=192.168.56.12" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
@@ -181,7 +181,7 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
-     --form "key=PROD_SSH_PORT" --form "value=2223" > /dev/null
+     --form "key=PROD_SSH_PORT" --form "value=22" > /dev/null
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \

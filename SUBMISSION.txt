@@ -1,0 +1,256 @@
+================================================================================
+PROJECT SUBMISSION (Group 8) - E4L DevOps Environment
+Software Engineering Environment - Semester 3
+University of Luxembourg
+================================================================================
+
+SUBMISSION METHOD: GitHub Repository (Option 2 - Precise Guidelines)
+
+Due to the large size of the project files (including Docker images, node_modules,
+Vagrant VMs, and build artifacts), the complete project is hosted on GitHub.
+
+================================================================================
+REPOSITORY INFORMATION
+================================================================================
+
+GitHub Repository: icemc/unilu-e4l-see-project
+Clone URL: https://github.com/icemc/unilu-e4l-see-project.git
+Repository URL: https://github.com/icemc/unilu-e4l-see-project
+
+================================================================================
+RETRIEVAL INSTRUCTIONS
+================================================================================
+
+1. CLONE THE REPOSITORY
+   ------------------------
+   git clone https://github.com/icemc/unilu-e4l-see-project.git
+   cd unilu-e4l-see-project
+
+
+2. PREREQUISITES
+   ------------------------
+   Ensure the following software is installed on your system:
+   
+   - VirtualBox (tested with 6.1+)
+   - Vagrant (tested with 2.3+)
+   - Docker Desktop (tested with 20.10+)
+   - Git
+   - Bash (Git Bash on Windows or native on Linux/Mac)
+
+
+3. AUTOMATED SETUP PROCESS
+   ------------------------
+   The project includes fully automated setup scripts. Simply run them in order:
+
+   a) Ensure Docker Desktop is running
+
+   b) Navigate to scripts directory:
+      cd scripts
+
+   c) Run the setup scripts IN ORDER:
+
+      Step 1: Set up environments (VMs, SSH keys, databases)
+      bash setup_envs.sh
+      
+      This script will:
+      - Generate SSH keys for staging and production
+      - Provision two Vagrant VMs (e4l-stage: 192.168.56.11, e4l-prod: 192.168.56.12)
+      - Install Docker on both VMs
+      - Deploy MariaDB containers
+
+      Step 2: Set up GitLab and Runner
+      bash setup_gitlab.sh
+      
+      This script will:
+      - Start GitLab CE container (http://localhost:8929)
+      - Wait for GitLab to be ready
+      - Display GitLab access information
+
+      Step 3: Register GitLab Runner
+      bash register_runner.sh
+      
+      This script will:
+      - Register GitLab Runner with the GitLab instance
+      - Configure runner for Docker executor
+
+      Step 4: Create GitLab projects and configure CI/CD
+      bash setup_projects.sh
+      
+      This script will:
+      - Create backende4l and frontende4l projects in GitLab
+      - Configure CI/CD variables (SSH keys, hosts, ports)
+      - Push code from repos/ to GitLab projects
+      - Initialize git repositories with proper branches
+
+
+4. TRIGGERING THE PIPELINE
+   ------------------------
+   After running all setup scripts, the CI/CD pipeline is ready to use:
+
+   a) The pipeline triggers automatically when changes are pushed to GitLab
+
+   b) To test the pipeline, make any change in the repos and push:
+      - For staging deployment: Push to 'dev' branch
+      - For production deployment: Push to 'main' branch
+
+   c) Monitor pipeline execution at:
+      http://localhost:8929/root/backende4l/-/pipelines
+      http://localhost:8929/root/frontende4l/-/pipelines
+
+
+5. VERIFICATION
+   ------------------------
+   After running all scripts, verify:
+
+   - GitLab accessible: http://localhost:8929
+   - GitLab Runner active in GitLab Admin → Runners
+   - VMs running: vagrant status (in ansible-stage/ or ansible-prod/)
+   - VMs accessible via SSH:
+     ssh -i ~/.ssh/devops_stage -p 2222 vagrant@192.168.56.11
+     ssh -i ~/.ssh/devops_prod -p 2223 vagrant@192.168.56.12
+   - Projects visible in GitLab with CI/CD variables configured
+   - Pipelines execute successfully on push
+
+================================================================================
+PROJECT STRUCTURE
+================================================================================
+
+unilu-e4l-see-project/
+├── docker-compose.yml           # GitLab CE & Runner configuration
+├── README.md                    # Comprehensive project documentation
+├── architecture_diagram.txt     # System architecture and pipeline flow
+├── scenarios.txt                # 15 DevOps scenarios with examples
+├── ansible-stage/              # Staging environment configuration
+│   ├── Vagrantfile
+│   ├── hosts.ini
+│   ├── deploy_stage.yml
+│   └── docker-compose.*.yml
+├── ansible-prod/               # Production environment configuration
+│   ├── Vagrantfile
+│   ├── hosts.ini
+│   ├── deploy_prod.yml
+│   └── docker-compose.*.yml
+├── repos/
+│   ├── backende4l/            # Java Spring Boot backend
+│   │   ├── src/
+│   │   ├── .gitlab-ci.yml     # Backend CI/CD pipeline
+│   │   └── Dockerfile
+│   └── frontende4l/           # React frontend
+│       ├── src/
+│       ├── .gitlab-ci.yml     # Frontend CI/CD pipeline
+│       └── e4l.frontend.docker/
+└── scripts/                    # Automation scripts
+    ├── setup_envs.sh          # Step 1: VM provisioning & database setup
+    ├── setup_gitlab.sh        # Step 2: GitLab container setup
+    ├── register_runner.sh     # Step 3: Runner registration
+    ├── setup_projects.sh      # Step 4: Project creation & CI/CD config
+    └── cleanup.sh             # Cleanup script (tears down environment)
+
+================================================================================
+KEY FEATURES DEMONSTRATED
+================================================================================
+
+1. INFRASTRUCTURE AS CODE
+   - Vagrant for VM provisioning
+   - Ansible for configuration management
+   - Docker for containerization
+
+2. CI/CD PIPELINE
+   - Branch-based deployment strategy:
+     * dev branch → deploys to staging (192.168.56.11)
+     * main branch → deploys to production (192.168.56.12)
+   - Automated testing (unit and integration tests for frontend)
+   - Docker image building and registry pushing
+   - Automated deployment via SSH
+
+3. DUAL ENVIRONMENT SETUP
+   - Separate staging and production VMs
+   - Isolated SSH keys per environment
+   - Independent database instances
+
+4. TESTING STRATEGY
+   - Frontend: Jest unit tests + integration tests
+   - Automated test execution in CI/CD pipeline
+   - Test stage runs before Docker build
+
+5. DEVOPS PRACTICES
+   - Version control with Git
+   - Automated provisioning and deployment
+   - Infrastructure monitoring and logging
+   - Environment-specific configurations
+
+================================================================================
+IMPORTANT NOTES
+================================================================================
+
+1. FILE SIZE CONSIDERATIONS
+   --------------------------
+   The following directories are excluded from the GitHub repository 
+   (listed in .gitignore) due to size:
+   
+   - repos/frontende4l/node_modules/
+   - repos/backende4l/.gradle/
+   - repos/backende4l/build/
+   - .vagrant/
+   - Docker volumes and images
+
+   These will be regenerated during setup.
+
+2. ESTIMATED SETUP TIME
+   -----------------------
+   - Initial clone: 2-5 minutes
+   - setup_envs.sh: 10-15 minutes (VM provisioning)
+   - setup_gitlab.sh: 3-5 minutes (GitLab startup)
+   - register_runner.sh: 1-2 minutes
+   - setup_projects.sh: 2-3 minutes
+   - Total: ~20-30 minutes (fully automated)
+
+3. SYSTEM REQUIREMENTS
+   ----------------------
+   - RAM: 8GB minimum (16GB recommended)
+   - Disk Space: 20GB free space
+   - CPU: 4 cores minimum
+   - Network: Internet connection for downloading dependencies
+
+4. DOCUMENTATION FILES
+   --------------------
+   Key documentation files in the repository:
+   - README.md: Complete setup and usage guide
+   - architecture_diagram.txt: Visual pipeline architecture
+   - scenarios.txt: 15 practical DevOps scenarios
+   - repos/backende4l/.gitlab-ci.yml: Backend pipeline
+   - repos/frontende4l/.gitlab-ci.yml: Frontend pipeline
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If you encounter issues during setup:
+
+1. Ensure Docker Desktop is running: docker ps
+2. Check script execution order (must run in sequence 1-4)
+3. Verify VirtualBox VMs are up: cd ansible-stage && vagrant status
+4. Check GitLab logs: docker logs gitlab
+5. Verify Runner registration: docker exec -it gitlab-runner gitlab-runner list
+6. Test VM connectivity: ping 192.168.56.11
+
+For detailed troubleshooting and DevOps scenarios, refer to scenarios.txt in the repository.
+
+To completely reset the environment, run:
+cd scripts
+bash cleanup.sh
+
+Then re-run the setup scripts in order.
+
+================================================================================
+CONTACT INFORMATION
+================================================================================
+
+For questions or issues retrieving/setting up the project:
+Students: Ludovic, Franco, Heriel (Group 8)
+Course: Software Engineering Environment - Semester 3
+Institution: University of Luxembourg
+
+================================================================================
+END OF SUBMISSION GUIDELINES
+================================================================================
