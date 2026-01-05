@@ -6,10 +6,23 @@ GITLAB_INTERNAL_URL="http://gitlab:8929"
 ROOT_TOKEN="glpat-AUTO_GENERATED_TOKEN"
 
 # Define network name dynamically to avoid errors
-# Assumes folder name 'devops-project' -> 'devops-project_devops-net'
 NETWORK_NAME=$(docker network ls --filter name=devops-net --format "{{.Name}}")
 if [ -z "$NETWORK_NAME" ]; then echo "Error: devops-net network not found"; exit 1; fi
 echo "Using Docker Network: $NETWORK_NAME"
+
+# Ensure the runner config directory exists and has proper permissions
+echo "Setting up runner config directory..."
+mkdir -p ./runner-config
+chmod 755 ./runner-config
+
+# Clean up existing runners
+echo "Cleaning up existing runners..."
+docker exec gitlab-runner gitlab-runner unregister --all-runners || true
+
+# Remove old config
+rm -f ./runner-config/config.toml
+touch ./runner-config/config.toml
+chmod 666 ./runner-config/config.toml
 
 register_for_project() {
     PROJECT_PATH=$1
@@ -35,13 +48,14 @@ register_for_project() {
       --docker-image "alpine:latest" \
       --description "$RUNNER_NAME" \
       --docker-network-mode "$NETWORK_NAME" \
-      --tag-list "docker" \
       --run-untagged="true" \
       --locked="false" \
       --access-level="not_protected" \
       --docker-privileged \
       --docker-volumes "/var/run/docker.sock:/var/run/docker.sock" \
       --docker-volumes "/cache"
+    
+    echo "✓ Runner '$RUNNER_NAME' registered successfully"
 }
 
 # Register for Backend
