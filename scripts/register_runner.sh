@@ -55,7 +55,7 @@ register_for_project() {
       --docker-volumes "/var/run/docker.sock:/var/run/docker.sock" \
       --docker-volumes "/cache"
     
-    echo "✓ Runner '$RUNNER_NAME' registered successfully"
+    echo "Runner '$RUNNER_NAME' registered successfully"
 }
 
 # Register for Backend
