@@ -8,17 +8,31 @@ ASSET COMPOSITION
 This project contains:
 
   scripts/                      Automation scripts for full setup
-    ├── setup_integration_server.sh   Start GitLab + Registry
-    ├── setup_users_and_projects.sh   Create user and repositories
-    ├── register_runner.sh            Register CI/CD runners
-    ├── seed_repos.sh                 Push source code to GitLab
-    └── cleanup.sh                    Tear down everything
+    ├── setup_envs.sh           Provision staging and production VMs
+    ├── setup_projects.sh       Create GitLab projects and CI/CD variables
+    ├── register_runner.sh      Register CI/CD runners for projects
+    ├── setup_gitlab.sh         Setup GitLab runner container
+    ├── push_repos.sh           Push source code to GitLab
+    └── cleanup.sh              Tear down VMs and environments
 
-  source_repos/                 Application source code
-    ├── lu.uni.e4l.platform.api.dev/       Backend (Java/Spring Boot)
-    └── lu.uni.e4l.platform.frontend.dev/  Frontend (React/Webpack)
+  repos/                        Application source code
+    ├── backende4l/             Backend (Java/Spring Boot + Gradle)
+    └── frontende4l/            Frontend (React/Webpack + Node.js)
 
-  docker-compose.gitlab.yml     GitLab CE + Runner + Registry
+  ansible-stage/                Ansible configuration for staging VM
+    ├── Vagrantfile             Vagrant VM config (192.168.56.11)
+    ├── playbook.yml            Ansible provisioning playbook
+    ├── hosts.ini               SSH configuration
+    └── docker-compose.*.yml    Docker compose files
+
+  ansible-prod/                 Ansible configuration for production VM
+    ├── Vagrantfile             Vagrant VM config (192.168.56.12)
+    ├── playbook.yml            Ansible provisioning playbook
+    ├── hosts.ini               SSH configuration
+    └── docker-compose.*.yml    Docker compose files
+
+  docker-compose.yml            GitLab Runner configuration
+  architecture_diagram.txt      Detailed architecture diagrams
   readme.txt                    This file
   scenarios.txt                 Test scenarios (pass/fail demos)
 
@@ -27,30 +41,26 @@ PREREQUISITES
 -------------
 Hardware:
   - Minimum 16 GB RAM (32 GB recommended)
-  - 50 GB available disk space
+  - 100 GB available disk space (for VMs)
   - Multi-core processor (4+ cores)
 
 Software:
-  - Linux (Ubuntu 20.04+ or equivalent)
-  - Docker v20.10+
-  - Docker Compose v2.0+
+  - Windows 10/11 or Linux
+  - VirtualBox 6.1+
+  - Vagrant 2.2+
+  - Docker Desktop (for GitLab Runner)
   - Git v2.25+
-  - Python 3 (for script JSON parsing)
-  - curl (for health checks)
+  - SSH client (OpenSSH)
+  - GitLab CE (pre-installed at localhost:8929)
 
-Docker Configuration (REQUIRED):
-  Enable insecure local registry before running setup scripts.
-  GitLab's registry runs at http://localhost:5050 without HTTPS.
+GitLab Setup (REQUIRED):
+  GitLab CE must be running at http://localhost:8929
+  Default credentials: testdev / vx6Yo1Mnmn4q7D4Q
 
-Run these commands:
-
-sudo tee /etc/docker/daemon.json > /dev/null <<EOF
-{
-  "insecure-registries": ["localhost:5050"]
-}
-EOF
-
-sudo systemctl restart docker
+Docker Hub Account:
+  You need a Docker Hub account for pushing images.
+  Default registry: docker.io/minfranco
+  Update CI/CD variables if using a different account.
 
 
 ARCHITECTURE - THREE ENVIRONMENTS
@@ -67,16 +77,22 @@ ARCHITECTURE - THREE ENVIRONMENTS
 │  │    └──────────────┘   └──────────────┘   └──────────────┘          │ │
 │  │                              │                                     │ │
 │  └──────────────────────────────┼─────────────────────────────────────┘ │
-│                                 ▼ git push                              │
+│                                 ▼ git push (dev or main branch)         │
 │  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │  INTEGRATION (GitLab :8929 + Registry :5050)                       │ │
-│  │                           ┌───────────────┐                        │ │
-│  │                           │ PIPELINE FLOW │                        │ │
-│  │                           └───────────────┘                        │ │
+│  │  INTEGRATION (GitLab :8929 + Docker Hub)                           │ │
+│  │                                                                    │ │
+│  │  ┌────────────────────────────────────────────────────────────┐    │ │
+│  │  │  PIPELINE FLOW (Branch-Based Deployment)                   │    │ │
+│  │  │  • dev branch  → Deploy to STAGING                         │    │ │
+│  │  │  • main branch → Deploy to PRODUCTION                      │    │ │
+│  │  └────────────────────────────────────────────────────────────┘    │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
 │                                                                         │
 │  ┌──────────────────────────────┐  ┌──────────────────────────────┐     │
-│  │     STAGING ENVIRONMENT      │  │    PRODUCTION ENVIRONMENT    │     │
+│  │ STAGING VM (e4l-stage)       │  │ PRODUCTION VM (e4l-prod)     │     │
+│  │ IP: 192.168.56.11            │  │ IP: 192.168.56.12            │     │
+│  │ SSH Port: 2222               │  │ SSH Port: 2223               │     │
+│  │ Working Dir: /opt/e4l        │  │ Working Dir: /opt/e4l-prod   │     │
 │  │                              │  │                              │     │
 │  │  ┌────────────────────────┐  │  │  ┌────────────────────────┐  │     │
 │  │  │ Frontend (Nginx) :8881 │  │  │  │ Frontend (Nginx) :8882 │  │     │
@@ -87,56 +103,143 @@ ARCHITECTURE - THREE ENVIRONMENTS
 │  │  └───────────┬────────────┘  │  │  └───────────┬────────────┘  │     │
 │  │              ▼               │  │              ▼               │     │
 │  │  ┌────────────────────────┐  │  │  ┌────────────────────────┐  │     │
-│  │  │ MariaDB (e4l_stg)      │  │  │  │ MariaDB (e4l_prod)     │  │     │
+│  │  │ MariaDB :3307          │  │  │  │ MariaDB :3308          │  │     │
+│  │  │ DB: e4l_stage          │  │  │  │ DB: e4l_prod           │  │     │
 │  │  └────────────────────────┘  │  │  └────────────────────────┘  │     │
 │  │                              │  │                              │     │
-│  │  E2E Tests: Postman,         │  │  Live Application            │     │
-│  │  Puppeteer                   │  │                              │     │
+│  │  Deployed from: dev branch   │  │  Deployed from: main branch  │     │
 │  └──────────────────────────────┘  └──────────────────────────────┘     │
-└─────────────────────────────────────────────────────────────────────────┘
+Backend Pipeline (6 Stages):
+    ┌─────────┐    ┌─────────┐    ┌──────┐    ┌────────────┐    ┌──────────┐
+    │PRE-BUILD│───►│  BUILD  │───►│ TEST │───►│DOCKER BUILD│───►│  DEPLOY  │
+    └─────────┘    └─────────┘    └──────┘    └─────┬──────┘    └────┬─────┘
+         │              │             │              │                │
+    Set vars      ./gradlew      JUnit tests    Push image      SSH to VM
+                   build                        to Docker Hub  docker-compose
 
+                                    Branch determines deployment:
+                                    • dev  → STAGING (192.168.56.11)
+                                    • main → PRODUCTION (192.168.56.12)
 
-PIPELINE FLOW
--------------
+Frontend Pipeline (3 Stages):
+    ┌────────────┐    ┌──────────────┐    ┌──────────────┐
+    │DOCKER BUILD│───►│DEPLOY STAGING│    │DEPLOY PROD   │
+    └─────┬──────┘    └──────────────┘    └──────────────┘
+          │                 ▲                     ▲
+    Build & push            │                     │
+    to Docker Hub      dev branch?          main branch?
 
-    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌─────────┐
-    │  BUILD  │───►│  TEST   │───►│ PACKAGE │───►│  DEPLOY  │───►│   E2E   │
-    └─────────┘    └─────────┘    └─────────┘    │ STAGING  │    │  TESTS  │
-                        │                        └──────────┘    └────┬────┘
-                        │                                             │
+All deployments use SSH to connect to VMs and run docker-compose commands.
                    ┌────┴────┐                                        ▼
                    │         │                                  ┌──────────┐
-              Unit Tests  Integration                           │  DEPLOY  │
-                          Tests                                 │PRODUCTION│
-                                                                └──────────┘
-
-    Backend:  Gradle build → JUnit tests → Docker image → Deploy → Newman/Postman
-    Frontend: npm build → Jest tests → Docker image → Deploy → Puppeteer E2E
-
-
-AUTOMATED SETUP (4 Scripts)
+              U
 ----------------------------
-Run these commands in sequence from the project root:
+Prerequisites:
+  - GitLab CE running at http://localhost:8929
+  - User 'testdev' created with password 'vx6Yo1Mnmn4q7D4Q'
+  - Docker Desktop running
+  - VirtualBox and Vagrant installed
 
-Make scripts executable (chmod +x scripts/*.sh)
+Run these commands in sequence from the project root (PowerShell/Bash):
 
-  1. ./scripts/setup_integration_server.sh
-     - Starts GitLab CE + Docker Registry
-     - Waits for GitLab to be healthy
-     - Creates automation token
+  1. scripts/setup_envs.sh
+     What it does:
+     - Generates SSH keys (~/.ssh/devops_stage and ~/.ssh/devops_prod)
+     - Provisions staging VM (192.168.56.11) using Vagrant + Ansible
+     - Provisions production VM (192.168.56.12) using Vagrant + Ansible
+     - Installs Docker CE + docker-compose-plugin on both VMs
+     - Deploys MariaDB databases on both VMs
+     - Verifies Docker installation
+     
+     Time: ~10-15 minutes (depends on download speeds)
 
-  2. ./scripts/setup_users_and_projects.sh
-     - Creates user: testdev / vx6Yo1Mnmn4q7D4Q
-     - Creates empty 'backend' and 'frontend' repositories
+  2. scripts/setup_gitlab.sh
+     What it does:
+     - Starts GitLab Runner Docker container
+     - Configures runner to connect to GitLab at localhost:8929
+     
+     Time: ~1 minute
 
-  3. ./scripts/register_runner.sh
-     - Registers Docker runners for both projects
-     - Enables CI/CD pipelines
+  3. scripts/setup_projects.sh
+     What it does:
+     - Creates 'backend' and 'frontend' GitLab projects
+     - Creates main and dev branches
+     - Adds CI/CD variables for staging and production:
+       * SSH keys, hosts, ports, registry images, paths
+     
+     Time: ~1 minute
 
-  4. ./scripts/seed_repos.sh
-     - Pushes backend (Java/Spring) source code to GitLab
-     - Pushes frontend (React/Node) source code to GitLab
-     - Triggers first pipeline run
+  4. scripts/register_runner.sh
+     What it does:
+     - Registers GitLab runner for backend project
+     - Registers GitLab runner for frontend project
+     - Assigns runners with tags: e4l-server, juno
+     - Enables privileged mode for Docker operations
+     
+     Time: ~30 seconds
+
+  5. scripts/push_repos.sh
+                      http://localhost:3307  (MariaDB staging)
+
+  Production App:     http://localhost:8882  (frontend)
+                      http://localhost:8085  (backend API)
+                      http://localhost:3308  (MariaDB production)
+
+  Docker Hub:         https://hub.docker.com/u/minfranco
+                      (Registry for Docker images)
+
+SSH Access to VMs:
+  Staging VM:         ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11 -p 2222
+  Production VM:      ssh -i ~/.ssh/devops_prod vagrant@192.168.56.12 -p 2223
+
+Vagrant Commands:
+  Check VM status:    cd ansible-stage && vagrant status
+                  & BRANCHING STRATEGY
+---------------------------------------
+The CI/CD pipeline runs automatically based on branch:
+
+  dev branch commits:
+    - Automatically build and deploy to STAGING environment
+    - Images pushed to: minfranco/e4l-backend-stage:latest
+                       minfranco/e4l-frontend-stage:latest
+    - Deployed to: 192.168.56.11 (e4l-stage VM)
+
+  main branch commits:
+    - Automatically build and deploy to PRODUCTION environment
+    - Images pushed to: minfranco/e4l-backend-prod:latest
+                       minfranco/e4l-frontend-prod:latest
+    - Deployed to: 192.168.56.12 (e4l-prod VM)
+VMs and environments:
+
+  Stop and destroy both VMs:
+    cd ansible-stage && vagrant destroy -f
+    cd ansible-prod && vagrant destroy -f
+
+  Stop GitLab Runner:
+    docker-compose down
+
+  Clean up SSH keys (optional):
+    rm ~/.ssh/devops_stage ~/.ssh/devops_stage.pub
+    rm ~/.ssh/devops_prod ~/.ssh/devops_prod.pub
+
+  Remove GitLab projects (via GitLab Web UI):
+    http://localhost:8929/testdev/backend/-/settings/general
+    http://localhost:8929/testdev/frontend/-/settings/general
+
+Full cleanup script:
+  scripts/cleanup.sh (if it exists)pipeline:
+  1. Go to repository (e.g., http://localhost:8929/testdev/backend)
+  2. Navigate to: Build > Pipelines
+  3. Click "Run Pipeline"
+  4. Select branch (dev or main)
+  5. Click "Run Pipeline"
+
+Workflow:
+  1. Develop locally on any branch
+  2. Push to dev branch → Auto-deploy to staging
+  3. Test on staging environment
+  4. Create merge request: dev → main
+  5. Merge to main → Auto-deploy to productioneline run
 
 Alternatively, these commands can be chained:
 

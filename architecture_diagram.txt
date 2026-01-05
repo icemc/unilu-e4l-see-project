@@ -3,7 +3,11 @@
 ================================================================================
 
 This document provides detailed architecture diagrams showing all three
-environments: Development (Local), Staging, and Production.
+environments: Development (Local), Staging (Vagrant VM), and Production (Vagrant VM).
+
+BRANCHING STRATEGY:
+- dev branch   → triggers deployment to STAGING environment
+- main branch  → triggers deployment to PRODUCTION environment
 
 
 ================================================================================
@@ -54,82 +58,213 @@ environments: Development (Local), Staging, and Production.
 │  │   │                GITLAB CE (localhost:8929)                       │     │  │
 │  │   │                                                                 │     │  │
 │  │   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐      │     │  │
-│  │   │  │   Backend   │  │  Frontend   │  │  Docker Registry    │      │     │  │
-│  │   │  │    Repo     │  │    Repo     │  │  (localhost:5050)   │      │     │  │
-│  │   │  └──────┬──────┘  └──────┬──────┘  └─────────────────────┘      │     │  │
-│  │   │         │                │                    ▲                 │     │  │
-│  │   │         └────────┬───────┘                    │                 │     │  │
-│  │   │                  ▼                            │                 │     │  │
-│  │   │         ┌─────────────────┐                   │                 │     │  │
-│  │   │         │  GitLab Runner  │───────────────────┘                 │     │  │
-│  │   │         │(Docker executor)│   pushes images                     │     │  │
-│  │   │         └────────┬────────┘                                     │     │  │
-│  │   │                  │                                              │     │  │
-│  │   │                  │ CI/CD Pipeline                               │     │  │
-│  │   │                  ▼                                              │     │  │
-│  │   │  ┌──────────────────────────────────────────────────────────┐   │     │  │
-│  │   │  │              PIPELINE STAGES                             │   │     │  │
-│  │   │  │                                                          │   │     │  │
-│  │   │  │  ┌───────┐  ┌───────┐  ┌─────────┐  ┌────────────────┐   │   │     │  │
-│  │   │  │  │ BUILD │─►│ TEST  │─►│ PACKAGE │─►│ DEPLOY STAGING │   │   │     │  │
-│  │   │  │  └───────┘  └───────┘  └─────────┘  └───────┬────────┘   │   │     │  │
-│  │   │  │                                             │            │   │     │  │
-│  │   │  │                                             ▼            │   │     │  │
-│  │   │  │                              ┌─────────────────────────┐ │   │     │  │
-│  │   │  │                              │  E2E TESTS (Staging)    │ │   │     │  │
-│  │   │  │                              │  • Newman/Postman       │ │   │     │  │
-│  │   │  │                              │  • Puppeteer            │ │   │     │  │
-│  │   │  │                              └────────────┬────────────┘ │   │     │  │
-│  │   │  │                                           │              │   │     │  │
-│  │   │  │                                           ▼              │   │     │  │
-│  │   │  │                              ┌─────────────────────────┐ │   │     │  │
-│  │   │  │                              │   DEPLOY PRODUCTION     │ │   │     │  │
-│  │   │  │                              └─────────────────────────┘ │   │     │  │
-│  │   │  └──────────────────────────────────────────────────────────┘   │     │  │
+│  │   │  │   Backend   │  │  Frontend   │  │  Docker Hub         │      │     │  │
+│  │   │  │    Repo     │  │    Repo     │  │  (docker.io)        │      │     │  │
+│  │   │  │  dev/main   │  │  dev/main   │  │  minfranco/*        │      │     │  │
+│  │   │  └──────────────┘  └─────────────┘  └─────────────────────┘      │     │  │
+│  │   │                                                                 │     │  │
+│  │   │  ┌─────────────────────────────────────────────────────────┐    │     │  │
+│  │   │  │          GitLab Runner (Docker socket)                  │    │     │  │
+│  │   │  │          Tags: e4l-server, juno                         │    │     │  │
+│  │   │  │          Executes CI/CD pipelines for both repos        │    │     │  │
+│  │   │  └─────────────────────────────────────────────────────────┘    │     │  │
+│  │   │                                                                 │     │  │
+│  │   │          See separate diagrams below for pipeline details      │     │  │
 │  │   └─────────────────────────────────────────────────────────────────┘     │  │
 │  └───────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
 │  ┌───────────────────────────────────────────────────────────────────────────┐  │
-│  │                      SHARED DOCKER NETWORK (e4l-db-net)                   │  │
+│  │                      VAGRANT VMs (VirtualBox Private Network)             │  │
 │  │                                                                           │  │
-│  │  ┌──────────────────────────────────┐  ┌──────────────────────────────┐   │  │
-│  │  │        STAGING ENVIRONMENT       │  │      PRODUCTION ENVIRONMENT  │   │  │
-│  │  │                                  │  │                              │   │  │
-│  │  │  Purpose: Integration Testing,   │  │  Purpose: Live Application,  │   │  │
-│  │  │  E2E Testing, QA Validation      │  │  End Users Access            │   │  │
-│  │  │                                  │  │                              │   │  │
-│  │  │  ┌────────────────────────────┐  │  │  ┌────────────────────────┐  │   │  │
-│  │  │  │     Frontend Container     │  │  │  │   Frontend Container   │  │   │  │
-│  │  │  │  ┌──────────────────────┐  │  │  │  │  ┌──────────────────┐  │  │   │  │
-│  │  │  │  │   Nginx + React      │  │  │  │  │  │  Nginx + React   │  │  │   │  │
-│  │  │  │  │   localhost:8881     │  │  │  │  │  │  localhost:8882  │  │  │   │  │
-│  │  │  │  └──────────────────────┘  │  │  │  │  └──────────────────┘  │  │   │  │
-│  │  │  └─────────────┬──────────────┘  │  │  └───────────┬────────────┘  │   │  │
-│  │  │                │ API calls       │  │              │ API calls     │   │  │
-│  │  │                ▼                 │  │              ▼               │   │  │
-│  │  │  ┌────────────────────────────┐  │  │  ┌────────────────────────┐  │   │  │
-│  │  │  │     Backend Container      │  │  │  │   Backend Container    │  │   │  │
-│  │  │  │  ┌──────────────────────┐  │  │  │  │  ┌──────────────────┐  │  │   │  │
-│  │  │  │  │   Spring Boot API    │  │  │  │  │  │  Spring Boot API │  │  │   │  │
-│  │  │  │  │   localhost:8084     │  │  │  │  │  │  localhost:8085  │  │  │   │  │
-│  │  │  │  └──────────────────────┘  │  │  │  │  └──────────────────┘  │  │   │  │
-│  │  │  └─────────────┬──────────────┘  │  │  └───────────┬────────────┘  │   │  │
-│  │  │                │ DB queries      │  │              │ DB queries    │   │  │
-│  │  │                ▼                 │  │              ▼               │   │  │
-│  │  │  ┌────────────────────────────┐  │  │  ┌────────────────────────┐  │   │  │
-│  │  │  │     Database Container     │  │  │  │   Database Container   │  │   │  │
-│  │  │  │  ┌──────────────────────┐  │  │  │  │  ┌──────────────────┐  │  │   │  │
-│  │  │  │  │   MariaDB            │  │  │  │  │  │   MariaDB        │  │  │   │  │
-│  │  │  │  │   Database: e4l_stg  │  │  │  │  │  │   Database:      │  │  │   │  │
-│  │  │  │  │   Port: 3307         │  │  │  │  │  │   e4l_prod       │  │  │   │  │
-│  │  │  │  └──────────────────────┘  │  │  │  │  │   Port: 3308     │  │  │   │  │
-│  │  │  └────────────────────────────┘  │  │  │  └──────────────────┘  │  │   │  │
-│  │  │                                  │  │  └────────────────────────┘  │   │  │
-│  │  └──────────────────────────────────┘  └──────────────────────────────┘   │  │
-│  │                                                                           │  │
+│  │  ┌────────────────────────────────────┐  ┌────────────────────────────┐   │  │
+│  │  │   STAGING VM (e4l-stage)           │  │  PRODUCTION VM (e4l-prod)  │   │  │
+│  │  │   IP: 192.168.56.11                │  │  IP: 192.168.56.12         │   │  │
+│  │  │   SSH Port: 2222                   │  │  SSH Port: 2223            │   │  │
+│  │  │   Working Dir: /opt/e4l            │  │  Working Dir: /opt/e4l-prod│   │  │
+│  │  │                                    │  │                            │   │  │
+│  │  │   Purpose: Integration Testing,    │  │  Purpose: Live Application,│   │  │
+│  │  │   dev branch deployments           │  │  main branch deployments   │   │  │
+│  │  │                                    │  │                            │   │  │
+│  │  │   ┌──────────────────────────────┐ │  │  ┌──────────────────────┐  │   │  │
+│  │  │   │  Docker Network (devops-net) │ │  │  │ Docker Network       │  │   │  │
+│  │  │   │                              │ │  │  │ (devops-net)         │  │   │  │
+│  │  │   │  ┌────────────────────────┐  │ │  │  │  ┌────────────────┐  │  │   │  │
+│  │  │   │  │  Frontend Container    │  │ │  │  │  │  Frontend      │  │  │   │  │
+│  │  │   │  │  Nginx + React         │  │ │  │  │  │  Container     │  │  │   │  │
+│  │  │   │  │  Port: 80->8881        │  │ │  │  │  │  Nginx + React │  │  │   │  │
+│  │  │   │  │  Image: minfranco/     │  │ │  │  │  │  Port: 80->8882│  │  │   │  │
+│  │  │   │  │  e4l-frontend-stage    │  │ │  │  │  │  Image:        │  │  │   │  │
+│  │  │   │  └───────┬────────────────┘  │ │  │  │  │  minfranco/    │  │  │   │  │
+│  │  │   │          │ API calls         │ │  │  │  │  e4l-frontend- │  │  │   │  │
+│  │  │   │          ▼                   │ │  │  │  │  prod          │  │  │   │  │
+│  │  │   │  ┌────────────────────────┐  │ │  │  │  └───────┬────────┘  │  │   │  │
+│  │  │   │  │  Backend Container     │  │ │  │  │          │ API calls │  │   │  │
+│  │  │   │  │  Spring Boot API       │  │ │  │  │          ▼           │  │   │  │
+│  │  │   │  │  Port: 8080->8084      │  │ │  │  │  ┌────────────────┐  │  │   │  │
+│  │  │   │  │  Image: minfranco/     │  │ │  │  │  │  Backend       │  │  │   │  │
+│  │  │   │  │  e4l-backend-stage     │  │ │  │  │  │  Container     │  │  │   │  │
+│  │  │   │  └───────┬────────────────┘  │ │  │  │  │  Spring Boot   │  │  │   │  │
+│  │  │   │          │ DB queries        │ │  │  │  │  Port:8080->   │  │  │   │  │
+│  │  │   │          ▼                   │ │  │  │  │  8085          │  │  │   │  │
+│  │  │   │  ┌────────────────────────┐  │ │  │  │  │  Image:        │  │  │   │  │
+│  │  │   │  │  Database Container    │  │ │  │  │  │  minfranco/    │  │  │   │  │
+│  │  │   │  │  MariaDB 10.4.7        │  │ │  │  │  │  e4l-backend-  │  │  │   │  │
+│  │  │   │  │  Port: 3306->3307      │  │ │  │  │  │  prod          │  │  │   │  │
+│  │  │   │  │  DB: e4l_stage         │  │ │  │  │  └───────┬────────┘  │  │   │  │
+│  │  │   │  └────────────────────────┘  │ │  │  │          │ DB queries│  │   │  │
+│  │  │   └──────────────────────────────┘ │  │  │          ▼           │  │   │  │
+│  │  │                                    │  │  │  ┌────────────────┐  │  │   │  │
+│  │  │   Deployment Method:               │  │  │  │  Database      │  │  │   │  │
+│  │  │   • SSH from GitLab Runner         │  │  │  │  Container     │  │  │   │  │
+│  │  │   • docker-compose pull & up -d    │  │  │  │  MariaDB 10.4.7│  │  │   │  │
+│  │  │   • SSH key: ~/.ssh/devops_stage   │  │  │  │  Port:3306->   │  │  │   │  │
+│  │  │                                    │  │  │  │  3308          │  │  │   │  │
+│  │  └────────────────────────────────────┘  │  │  │  DB: e4l_prod  │  │  │   │  │
+│  │                                          │  │  └────────────────┘  │  │   │  │
+│  │                                          │  └──────────────────────┘  │   │  │
+│  │                                          │                            │   │  │
+│  │                                          │  Deployment Method:        │   │  │
+│  │                                          │  • SSH from GitLab Runner  │   │  │
+│  │                                          │  • docker-compose pull &   │   │  │
+│  │                                          │    up -d                   │   │  │
+│  │                                          │  • SSH key: ~/.ssh/        │   │  │
+│  │                                          │    devops_prod             │   │  │
+│  │                                          └────────────────────────────┘   │  │
 │  └───────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
+
+
+================================================================================
+                     BACKEND PIPELINE & DEPLOYMENT FLOW
+================================================================================
+
+    BACKEND CI/CD PIPELINE (6 Stages)
+    
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   Developer commits to Backend Repo (dev or main branch)                │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 1: PRE-BUILD                                                    │
+    │   • Detect branch (dev or main)                                         │
+    │   • Set environment variables                                           │
+    │   • Determine deployment target                                         │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 2: BUILD                                                        │
+    │   • gradle:8.3-jdk17-alpine                                             │
+    │   • ./gradlew clean build -x test                                       │
+    │   • Create JAR artifact                                                 │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 3: TEST                                                         │
+    │   • ./gradlew test                                                      │
+    │   • Run JUnit tests                                                     │
+    │   • Generate test reports                                               │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 4: DOCKER BUILD                                                 │
+    │   • Build Docker image from JAR                                         │
+    │   • Tag based on branch:                                                │
+    │     - dev  → minfranco/e4l-backend-stage:latest                         │
+    │     - main → minfranco/e4l-backend-prod:latest                          │
+    │   • Push to Docker Hub (docker.io)                                      │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+           ┌─────────────┴─────────────┐
+           │                           │
+    dev branch?                  main branch?
+           │                           │
+           ▼                           ▼
+    ┌──────────────────┐      ┌──────────────────┐
+    │  STAGE 5:        │      │  STAGE 6:        │
+    │  DEPLOY STAGING  │      │  DEPLOY PROD     │
+    └──────────────────┘      └──────────────────┘
+           │                           │
+           ▼                           ▼
+    ┌──────────────────┐      ┌──────────────────┐
+    │  SSH to VM:      │      │  SSH to VM:      │
+    │  192.168.56.11   │      │  192.168.56.12   │
+    │  Port: 2222      │      │  Port: 2223      │
+    │  User: vagrant   │      │  User: vagrant   │
+    │  Key: devops_    │      │  Key: devops_    │
+    │       stage      │      │       prod       │
+    │                  │      │                  │
+    │  Commands:       │      │  Commands:       │
+    │  • cd /opt/e4l   │      │  • cd            │
+    │  • docker-compose│      │    /opt/e4l-prod │
+    │    pull          │      │  • docker-compose│
+    │  • docker-compose│      │    pull          │
+    │    up -d         │      │  • docker-compose│
+    │                  │      │    up -d         │
+    │  Result:         │      │                  │
+    │  Backend running │      │  Result:         │
+    │  at :8084        │      │  Backend running │
+    └──────────────────┘      │  at :8085        │
+                              └──────────────────┘
+
+
+================================================================================
+                     FRONTEND PIPELINE & DEPLOYMENT FLOW
+================================================================================
+
+    FRONTEND CI/CD PIPELINE (3 Stages)
+    
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   Developer commits to Frontend Repo (dev or main branch)               │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 1: DOCKER BUILD                                                 │
+    │   • Build multi-stage Docker image:                                     │
+    │     1. Build stage: npm install & webpack build                         │
+    │     2. Runtime stage: Nginx + React production build                    │
+    │   • Tag based on branch:                                                │
+    │     - dev  → minfranco/e4l-frontend-stage:latest                        │
+    │     - main → minfranco/e4l-frontend-prod:latest                         │
+    │   • Push to Docker Hub (docker.io)                                      │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+           ┌─────────────┴─────────────┐
+           │                           │
+    dev branch?                  main branch?
+           │                           │
+           ▼                           ▼
+    ┌──────────────────┐      ┌──────────────────┐
+    │  STAGE 2:        │      │  STAGE 3:        │
+    │  DEPLOY STAGING  │      │  DEPLOY PROD     │
+    └──────────────────┘      └──────────────────┘
+           │                           │
+           ▼                           ▼
+    ┌──────────────────┐      ┌──────────────────┐
+    │  SSH to VM:      │      │  SSH to VM:      │
+    │  192.168.56.11   │      │  192.168.56.12   │
+    │  Port: 2222      │      │  Port: 2223      │
+    │  User: vagrant   │      │  User: vagrant   │
+    │  Key: devops_    │      │  Key: devops_    │
+    │       stage      │      │       prod       │
+    │                  │      │                  │
+    │  Commands:       │      │  Commands:       │
+    │  • cd /opt/e4l   │      │  • cd            │
+    │  • docker-compose│      │    /opt/e4l-prod │
+    │    pull          │      │  • docker-compose│
+    │  • docker-compose│      │    pull          │
+    │    up -d         │      │  • docker-compose│
+    │                  │      │    up -d         │
+    │  Result:         │      │                  │
+    │  Frontend running│      │  Result:         │
+    │  at :8881        │      │  Frontend running│
+    └──────────────────┘      │  at :8882        │
+                              └──────────────────┘
 
 
 ================================================================================
@@ -137,10 +272,13 @@ environments: Development (Local), Staging, and Production.
 ================================================================================
 
 ┌────────────────┬─────────────────────┬─────────────────────┬─────────────────────┐
-│   Component    │   DEV (Local)       │   STAGING           │   PRODUCTION        │
+│   Component    │   DEV (Local)       │   STAGING (VM)      │   PRODUCTION (VM)   │
 ├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
 │ Purpose        │ Development &       │ Integration Testing │ Live Application    │
-│                │ Local Testing       │ E2E Testing & QA    │ End User Access     │
+│                │ Local Testing       │ dev branch deploys  │ main branch deploys │
+├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
+│ VM Details     │ N/A                 │ 192.168.56.11:2222  │ 192.168.56.12:2223  │
+│                │                     │ /opt/e4l            │ /opt/e4l-prod       │
 ├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
 │ Frontend       │ localhost:3000      │ localhost:8881      │ localhost:8882      │
 │                │ (webpack dev)       │ (Nginx + React)     │ (Nginx + React)     │
@@ -148,88 +286,28 @@ environments: Development (Local), Staging, and Production.
 │ Backend        │ localhost:8080      │ localhost:8084      │ localhost:8085      │
 │                │ (Gradle bootRun)    │ (Docker Container)  │ (Docker Container)  │
 ├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
-│ Database       │ localhost:3306      │ e4l_stg (3307)      │ e4l_prod (3308)     │
+│ Database       │ localhost:3306      │ e4l_stage (3307)    │ e4l_prod (3308)     │
 │                │ (Local/Docker)      │ (Docker Container)  │ (Docker Container)  │
 ├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
-│ Testing        │ Unit Tests          │ E2E Tests           │ Smoke Tests         │
-│                │ • JUnit             │ • Newman/Postman    │ (Post-deploy)       │
-│                │ • Jest              │ • Puppeteer         │                     │
+│ Docker Images  │ N/A                 │ minfranco/          │ minfranco/          │
+│                │                     │ e4l-*-stage         │ e4l-*-prod          │
 ├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
-│ Deployment     │ Manual              │ Automatic           │ Automatic           │
-│ Method         │ (gradle/npm)        │ (CI/CD Pipeline)    │ (CI/CD Pipeline)    │
+│ Git Branch     │ Any                 │ dev                 │ main                │
+├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
+│ Testing        │ Unit Tests          │ Backend: 6 stages   │ Backend: 6 stages   │
+│                │ • JUnit             │ Frontend: 3 stages  │ Frontend: 3 stages  │
+│                │ • Jest              │                     │                     │
+├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
+│ Deployment     │ Manual              │ Automatic on        │ Automatic on        │
+│ Method         │ (gradle/npm)        │ dev branch commit   │ main branch commit  │
+├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
+│ SSH Access     │ N/A                 │ ~/.ssh/devops_stage │ ~/.ssh/devops_prod  │
 ├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
 │ Data           │ Developer Test Data │ Test/Seeded Data    │ Production Data     │
 ├────────────────┼─────────────────────┼─────────────────────┼─────────────────────┤
-│ Isolation      │ Developer Machine   │ Docker Network      │ Docker Network      │
-│                │                     │ (Isolated)          │ (Isolated)          │
+│ Isolation      │ Developer Machine   │ Vagrant VM          │ Vagrant VM          │
+│                │                     │ + Docker Network    │ + Docker Network    │
 └────────────────┴─────────────────────┴─────────────────────┴─────────────────────┘
-
-
-================================================================================
-                        DATA FLOW & DEPLOYMENT PATH
-================================================================================
-
-                           CODE JOURNEY THROUGH ENVIRONMENTS
-                           
-    ┌───────────────────────────────────────────────────────────────────────────┐
-    │                                                                           │
-    │   DEVELOPER                                                               │
-    │   WORKSTATION                                                             │
-    │   (DEV ENV)                                                               │
-    │                                                                           │
-    │   ┌─────────┐     ┌─────────┐     ┌─────────┐                             │
-    │   │  Code   │────►│  Test   │────►│  Commit │                             │
-    │   │  Edit   │     │  Local  │     │  Code   │                             │
-    │   └─────────┘     └─────────┘     └────┬────┘                             │
-    │                                        │                                  │
-    └────────────────────────────────────────┼──────────────────────────────────┘
-                                             │
-                                             │ git push
-                                             ▼
-    ┌───────────────────────────────────────────────────────────────────────────┐
-    │                                                                           │
-    │   GITLAB CI/CD                                                            │
-    │   (INTEGRATION)                                                           │
-    │                                                                           │
-    │   ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────────────┐     │
-    │   │  BUILD  │────►│  TEST   │────►│ PACKAGE │────►│ PUSH TO         │     │
-    │   │         │     │  (Unit/ │     │ (Docker │     │ REGISTRY        │     │
-    │   │         │     │  Integ) │     │  Image) │     │ localhost:5050  │     │
-    │   └─────────┘     └─────────┘     └─────────┘     └────────┬────────┘     │
-    │                                                            │              │
-    └────────────────────────────────────────────────────────────┼──────────────┘
-                                                                 │
-                                                                 │ docker pull
-                                                                 ▼
-    ┌───────────────────────────────────────────────────────────────────────────┐
-    │                                                                           │
-    │   STAGING ENVIRONMENT                                                     │
-    │                                                                           │
-    │   ┌─────────────┐     ┌─────────────┐     ┌─────────────────────────┐     │
-    │   │   DEPLOY    │────►│  RUN E2E    │────►│  TESTS PASS?            │     │
-    │   │  (Pull &    │     │   TESTS     │     │                         │     │
-    │   │   Run)      │     │ (Postman/   │     │  YES ──────────────┐    │     │
-    │   │             │     │  Puppeteer) │     │                    │    │     │
-    │   │ :8881/:8084 │     └─────────────┘     │  NO ───► STOP ✗    │    │     │
-    │   └─────────────┘                         └─────────────────────┼───┘     │
-    │                                                                 │         │
-    └─────────────────────────────────────────────────────────────────┼─────────┘
-                                                                      │
-                                                                      │ Promote
-                                                                      ▼
-    ┌───────────────────────────────────────────────────────────────────────────┐
-    │                                                                           │
-    │   PRODUCTION ENVIRONMENT                                                  │
-    │                                                                           │
-    │   ┌─────────────┐     ┌─────────────┐                                     │
-    │   │   DEPLOY    │────►│   LIVE      │                                     │
-    │   │  (Pull &    │     │   APP       │                                     │
-    │   │   Run)      │     │   ✓         │                                     │
-    │   │             │     │             │                                     │
-    │   │ :8882/:8085 │     │             │                                     │
-    │   └─────────────┘     └─────────────┘                                     │
-    │                                                                           │
-    └───────────────────────────────────────────────────────────────────────────┘
 
 
 ================================================================================
@@ -239,87 +317,48 @@ environments: Development (Local), Staging, and Production.
     EXTERNAL ACCESS (Host Machine)
     ══════════════════════════════════════════════════════════════════════════
     
-    Port 8929  ──────────►  GitLab Web UI
-    Port 5050  ──────────►  Docker Registry
+    Port 8929  ──────────►  GitLab Web UI (GitLab CE)
     
-    Port 8881  ──────────►  Staging Frontend  (Nginx)
-    Port 8084  ──────────►  Staging Backend   (Spring Boot)
+    Port 8881  ──────────►  Staging Frontend  (Nginx) via VM 192.168.56.11
+    Port 8084  ──────────►  Staging Backend   (Spring Boot) via VM 192.168.56.11
+    Port 3307  ──────────►  Staging Database  (MariaDB) via VM 192.168.56.11
     
-    Port 8882  ──────────►  Production Frontend (Nginx)
-    Port 8085  ──────────►  Production Backend  (Spring Boot)
+    Port 8882  ──────────►  Production Frontend (Nginx) via VM 192.168.56.12
+    Port 8085  ──────────►  Production Backend  (Spring Boot) via VM 192.168.56.12
+    Port 3308  ──────────►  Production Database (MariaDB) via VM 192.168.56.12
     
     
-    INTERNAL DOCKER NETWORK (e4l-db-net)
+    INTERNAL DOCKER NETWORKS (devops-net per VM)
     ══════════════════════════════════════════════════════════════════════════
     
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                                                                         │
-    │   ┌───────────────┐          ┌───────────────┐                          │
-    │   │  stg-frontend │◄────────►│ prod-frontend │                          │
-    │   └───────┬───────┘          └───────┬───────┘                          │
-    │           │                          │                                  │
-    │           │ internal:80              │ internal:80                      │
-    │           │                          │                                  │
-    │           ▼                          ▼                                  │
-    │   ┌───────────────┐          ┌───────────────┐                          │
-    │   │  stg-backend  │          │ prod-backend  │                          │
-    │   └───────┬───────┘          └───────┬───────┘                          │
-    │           │                          │                                  │
-    │           │ internal:8080            │ internal:8080                    │
-    │           │                          │                                  │
-    │           ▼                          ▼                                  │
-    │   ┌───────────────┐          ┌───────────────┐                          │
-    │   │   stg-db      │          │   prod-db     │                          │
-    │   │  (MariaDB)    │          │  (MariaDB)    │                          │
-    │   └───────────────┘          └───────────────┘                          │
-    │                                                                         │
-    └─────────────────────────────────────────────────────────────────────────┘
-
-
-================================================================================
-                     ENVIRONMENT ISOLATION DIAGRAM
-================================================================================
-
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                          ISOLATION BOUNDARIES                           │
-    │                                                                         │
-    │  ╔═══════════════════════════════════════════════════════════════════╗  │
-    │  ║  DEV ENVIRONMENT                                                  ║  │
-    │  ║  ═══════════════                                                  ║  │
-    │  ║  • Runs on developer's local machine                              ║  │
-    │  ║  • Uses local filesystem for source code                          ║  │
-    │  ║  • Can use local or containerized database                        ║  │
-    │  ║  • Changes do NOT affect Staging or Production                    ║  │
-    │  ║  • Developer has full control                                     ║  │
-    │  ╚═══════════════════════════════════════════════════════════════════╝  │
-    │                              │                                          │
-    │                              │ git push (code only)                     │
-    │                              ▼                                          │
-    │  ╔═══════════════════════════════════════════════════════════════════╗  │
-    │  ║  STAGING ENVIRONMENT                                              ║  │
-    │  ║  ═══════════════════                                              ║  │
-    │  ║  • Separate Docker containers                                     ║  │
-    │  ║  • Own database instance (e4l_stg)                                ║  │
-    │  ║  • Own network ports (8881, 8084, 3307)                           ║  │
-    │  ║  • Test data only - safe to reset/modify                          ║  │
-    │  ║  • E2E tests run here before promotion                            ║  │
-    │  ║  • Changes do NOT affect Production                               ║  │
-    │  ╚═══════════════════════════════════════════════════════════════════╝  │
-    │                              │                                          │
-    │                              │ E2E tests pass → promote                 │
-    │                              ▼                                          │
-    │  ╔═══════════════════════════════════════════════════════════════════╗  │
-    │  ║  PRODUCTION ENVIRONMENT                                           ║  │
-    │  ║  ══════════════════════                                           ║  │
-    │  ║  • Separate Docker containers                                     ║  │
-    │  ║  • Own database instance (e4l_prod)                               ║  │
-    │  ║  • Own network ports (8882, 8085, 3308)                           ║  │
-    │  ║  • Production data - handle with care                             ║  │
-    │  ║  • Only receives verified, tested code                            ║  │
-    │  ║  • Rollback possible via Docker image tags                        ║  │
-    │  ╚═══════════════════════════════════════════════════════════════════╝  │
-    │                                                                         │
-    └─────────────────────────────────────────────────────────────────────────┘
+    ┌────────────────────────────────────┐  ┌────────────────────────────────┐
+    │  STAGING VM (192.168.56.11)        │  │  PRODUCTION VM (192.168.56.12) │
+    │  Network: devops-net               │  │  Network: devops-net           │
+    │                                    │  │                                │
+    │   ┌───────────────┐                │  │   ┌───────────────┐            │
+    │   │  e4l-frontend │                │  │   │  e4l-frontend │            │
+    │   └───────┬───────┘                │  │   └───────┬───────┘            │
+    │           │                        │  │           │                    │
+    │           │ internal:80            │  │           │ internal:80        │
+    │           │                        │  │           │                    │
+    │           ▼                        │  │           ▼                    │
+    │   ┌───────────────┐                │  │   ┌───────────────┐            │
+    │   │  e4l-backend  │                │  │   │  e4l-backend  │            │
+    │   └───────┬───────┘                │  │   └───────┬───────┘            │
+    │           │                        │  │           │                    │
+    │           │ internal:8080          │  │           │ internal:8080      │
+    │           │                        │  │           │                    │
+    │           ▼                        │  │           ▼                    │
+    │   ┌───────────────┐                │  │   ┌───────────────┐            │
+    │   │   e4l-db      │                │  │   │   e4l-db      │            │
+    │   │  (MariaDB)    │                │  │   │  (MariaDB)    │            │
+    │   └───────────────┘                │  │   └───────────────┘            │
+    │                                    │  │                                │
+    └────────────────────────────────────┘  └────────────────────────────────┘
+    
+    Note: Each VM has its own isolated Docker network. Containers within the
+    same VM can communicate via Docker network, but VMs are isolated from
+    each other.
 
 
 ================================================================================
@@ -333,17 +372,29 @@ environments: Development (Local), Staging, and Production.
     
   INTEGRATION (GitLab):
     GitLab UI:   http://localhost:8929
-    Registry:    http://localhost:5050
+    Docker Hub:  https://hub.docker.com (docker.io/minfranco)
     Credentials: testdev / vx6Yo1Mnmn4q7D4Q
 
-  STAGING:
+  STAGING (Vagrant VM - 192.168.56.11):
+    SSH Port:    2222
+    SSH Key:     ~/.ssh/devops_stage
+    Working Dir: /opt/e4l
     Frontend:    http://localhost:8881
     Backend:     http://localhost:8084
-    Database:    MariaDB on port 3307 (internal)
+    Database:    MariaDB on port 3307
+    Docker Net:  devops-net
 
-  PRODUCTION:
+  PRODUCTION (Vagrant VM - 192.168.56.12):
+    SSH Port:    2223
+    SSH Key:     ~/.ssh/devops_prod
+    Working Dir: /opt/e4l-prod
     Frontend:    http://localhost:8882
     Backend:     http://localhost:8085
-    Database:    MariaDB on port 3308 (internal)
+    Database:    MariaDB on port 3308
+    Docker Net:  devops-net
+
+  BRANCHING STRATEGY:
+    dev branch  → Auto-deploy to STAGING
+    main branch → Auto-deploy to PRODUCTION
 
 ================================================================================
