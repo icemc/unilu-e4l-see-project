@@ -1,0 +1,355 @@
+================================================================================
+                    E4L Platform - Test Scenarios
+================================================================================
+
+This document demonstrates automated tests PASSING and FAILING for both
+codebases. Each scenario shows how to observe the test in the CI/CD pipeline.
+
+
+================================================================================
+BACKEND TESTS (Java/Spring Boot)
+================================================================================
+
+
+# Scenario 1: Backend Unit Test - PASSING
+
+## Goal
+Verify that backend unit tests pass in the CI/CD pipeline.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Backend repository has been seeded with source code
+- Pipeline has been triggered (via push or manual run)
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/backend/-/pipelines
+2. Click on the latest pipeline
+3. View the "test" stage → "unit-test" job
+4. Observe job passes (green checkmark)
+
+## Test File
+src/test/java/lu/uni/e4l/platform/service/CalculatorServiceTest.java
+
+--------------------------------------------------------------------------------
+
+# Scenario 2: Backend Unit Test - FAILING
+
+## Goal
+Demonstrate that the pipeline fails when a unit test fails.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Backend repository has been seeded with source code
+- User is logged in as testdev
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/backend
+2. Navigate to: src/test/java/lu/uni/e4l/platform/service/CalculatorServiceTest.java
+3. Click "Edit" → "Edit single file"
+4. Find this line:
+      assertEquals(-7d, calculatorService.calculate(session).getResult(), 0.0000001);
+5. Change -7d to -999d:
+      assertEquals(-999d, calculatorService.calculate(session).getResult(), 0.0000001);
+6. Commit changes (triggers pipeline)
+7. Go to: http://localhost:8929/testdev/backend/-/pipelines
+8. Observe pipeline fails at "unit-test" job (red X)
+
+## Restore
+Change -999d back to -7d and commit.
+
+--------------------------------------------------------------------------------
+
+# Scenario 3: Backend Integration Test - PASSING
+
+## Goal
+Verify that backend integration tests (JPA + Database) pass in the CI/CD pipeline.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Backend repository has been seeded with source code
+- Pipeline has been triggered (via push or manual run)
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/backend/-/pipelines
+2. Click on the latest pipeline
+3. View the "test" stage → "integration-test" job
+4. Observe job passes (green checkmark)
+
+## Test File
+src/integrationTest/java/lu/uni/e4l/platform/UserRepositoryIT.java
+
+--------------------------------------------------------------------------------
+
+# Scenario 4: Backend Integration Test - FAILING
+
+## Goal
+Demonstrate that the pipeline fails when an integration test fails.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Backend repository has been seeded with source code
+- User is logged in as testdev
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/backend
+2. Navigate to: src/integrationTest/java/lu/uni/e4l/platform/UserRepositoryIT.java
+3. Click "Edit" → "Edit single file"
+4. Find this line:
+      assertThat(found.getEmail()).isEqualTo("integration@test.lu");
+5. Change to wrong email:
+      assertThat(found.getEmail()).isEqualTo("wrong@email.com");
+6. Commit changes (triggers pipeline)
+7. Go to: http://localhost:8929/testdev/backend/-/pipelines
+8. Observe pipeline fails at "integration-test" job (red X)
+
+## Restore
+Change back to "integration@test.lu" and commit.
+
+--------------------------------------------------------------------------------
+
+# Scenario 5: Backend E2E Test (Postman/Newman) - PASSING
+
+## Goal
+Verify that backend E2E API tests pass against the deployed staging environment.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Backend repository has been seeded with source code
+- Staging environment is deployed (backend running at http://localhost:8084)
+- Pipeline has completed the deploy-staging stage
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/backend/-/pipelines
+2. Click on the latest pipeline
+3. View the "e2e" stage → "e2e-test" job
+4. Observe job passes (green checkmark)
+5. Log shows Newman test results:
+   - "GET /questionnaire" → Status code is 200 ✓
+   - "GET /responses/count" → Status code is 200 ✓
+   - "POST /calculate/energyConsumption" → Status code is 200 ✓
+
+## Test Files
+tests/postman/e4l-backend-e2e.collection.json
+tests/postman/staging.environment.json
+
+--------------------------------------------------------------------------------
+
+# Scenario 6: Backend E2E Test (Postman/Newman) - FAILING
+
+## Goal
+Demonstrate that the pipeline fails when a backend E2E test fails.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Backend repository has been seeded with source code
+- User is logged in as testdev
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/backend
+2. Navigate to: tests/postman/e4l-backend-e2e.collection.json
+3. Click "Edit" → "Edit single file"
+4. Find this test assertion in "GET /questionnaire":
+      "pm.test('Status code is 200', function () {",
+      "  pm.response.to.have.status(200);",
+5. Change expected status to 404:
+      "pm.test('Status code is 200', function () {",
+      "  pm.response.to.have.status(404);",
+6. Commit changes (triggers pipeline)
+7. Go to: http://localhost:8929/testdev/backend/-/pipelines
+8. Observe pipeline fails at "e2e-test" job (red X)
+9. Log shows: "AssertionError: expected response to have status code 404 but got 200"
+
+## Restore
+Change 404 back to 200 and commit.
+
+
+================================================================================
+FRONTEND TESTS (React)
+================================================================================
+
+# Scenario 7: Frontend Unit Test - PASSING
+
+## Goal
+Verify that frontend unit tests pass in the CI/CD pipeline.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Frontend repository has been seeded with source code
+- Pipeline has been triggered (via push or manual run)
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+2. Click on the latest pipeline
+3. View the "test" stage → "unit-test" job
+4. Observe job passes (green checkmark)
+5. Log shows: "VerticalSpace Component › renders a div with the correct height style"
+
+## Test File
+src/js/presentation/__tests__/verticalSpace.test.js
+
+--------------------------------------------------------------------------------
+
+# Scenario 8: Frontend Unit Test - FAILING
+
+## Goal
+Demonstrate that the pipeline fails when a frontend unit test fails.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Frontend repository has been seeded with source code
+- User is logged in as testdev
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/frontend
+2. Navigate to: src/js/presentation/__tests__/verticalSpace.test.js
+3. Click "Edit" → "Edit single file"
+4. Find this line:
+      expect(wrapper.prop('style')).toHaveProperty('height', '5em');
+5. Change expected value:
+      expect(wrapper.prop('style')).toHaveProperty('height', '999em');
+6. Commit changes (triggers pipeline)
+7. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+8. Observe pipeline fails at "unit-test" job (red X)
+9. Log shows: "Expected: '999em', Received: '5em'"
+
+## Restore
+Change '999em' back to '5em' and commit.
+
+--------------------------------------------------------------------------------
+
+# Scenario 9: Frontend Integration Test - PASSING
+
+## Goal
+Verify that frontend integration tests (Redux store flow) pass in the CI/CD pipeline.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Frontend repository has been seeded with source code
+- Pipeline has been triggered (via push or manual run)
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+2. Click on the latest pipeline
+3. View the "test" stage → "integration-test" job
+4. Observe job passes (green checkmark)
+5. Log shows: "Integration: Redux Data Flow › should handle the full flow of changing language"
+
+## Test File
+src/js/integration/__tests__/storeFlow.test.js
+
+--------------------------------------------------------------------------------
+
+# Scenario 10: Frontend Integration Test - FAILING
+
+## Goal
+Demonstrate that the pipeline fails when a frontend integration test fails.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Frontend repository has been seeded with source code
+- User is logged in as testdev
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/frontend
+2. Navigate to: src/js/integration/__tests__/storeFlow.test.js
+3. Click "Edit" → "Edit single file"
+4. Find this line:
+      expect(updatedState.userReducer.lang).toEqual("fr");
+5. Change expected value:
+      expect(updatedState.userReducer.lang).toEqual("de");
+6. Commit changes (triggers pipeline)
+7. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+8. Observe pipeline fails at "integration-test" job (red X)
+9. Log shows: "Expected: 'de', Received: 'fr'"
+
+## Restore
+Change "de" back to "fr" and commit.
+
+--------------------------------------------------------------------------------
+
+# Scenario 11: Frontend E2E Test - PASSING
+
+## Goal
+Verify that frontend E2E tests (Puppeteer) pass against the deployed staging environment.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Frontend repository has been seeded with source code
+- Staging environment is deployed (frontend running at http://localhost:8881)
+- Pipeline has completed the deploy-staging stage
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+2. Click on the latest pipeline
+3. View the "e2e" stage → "e2e-test" job
+4. Observe job passes (green checkmark)
+5. Log shows: "E2E: Home Page › should display the correct page title"
+
+## Test File
+src/e2e/home.e2e.test.js
+
+--------------------------------------------------------------------------------
+
+# Scenario 12: Frontend E2E Test - FAILING
+
+## Goal
+Demonstrate that the pipeline fails when a frontend E2E test fails.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- GitLab Runner is registered and active
+- Frontend repository has been seeded with source code
+- User is logged in as testdev
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/frontend
+2. Navigate to: .gitlab-ci.yml
+3. Click "Edit" → "Edit single file"
+4. Find the e2e-test job command:
+      npm run test:e2e -- src/e2e/home.e2e.test.js
+5. Change to run the intentionally failing test:
+      npm run test:e2e -- src/e2e/failing.e2e.test.js
+6. Commit changes (triggers pipeline)
+7. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+8. Observe pipeline fails at "e2e-test" job (red X)
+9. Log shows: "expect(received).toContain(expected) - Expected: 'Calculate energy score'"
+
+## Notes
+The file src/e2e/failing.e2e.test.js is intentionally designed to fail.
+It expects "Calculate energy score" button to be visible without selecting audience first.
+
+## Restore
+Change back to src/e2e/home.e2e.test.js and commit.
+
+
+================================================================================
+SUMMARY TABLE
+================================================================================
+
+| #  | Codebase | Test Type   | Tool           | Scenario | File to Modify              |
+|----|----------|-------------|----------------|----------|------------------------------|
+| 1  | Backend  | Unit        | JUnit          | PASSING  | (none)                       |
+| 2  | Backend  | Unit        | JUnit          | FAILING  | CalculatorServiceTest.java   |
+| 3  | Backend  | Integration | JUnit+H2       | PASSING  | (none)                       |
+| 4  | Backend  | Integration | JUnit+H2       | FAILING  | UserRepositoryIT.java        |
+| 5  | Backend  | E2E         | Newman/Postman | PASSING  | (none)                       |
+| 6  | Backend  | E2E         | Newman/Postman | FAILING  | e4l-backend-e2e.collection   |
+| 7  | Frontend | Unit        | Jest/Enzyme    | PASSING  | (none)                       |
+| 8  | Frontend | Unit        | Jest/Enzyme    | FAILING  | verticalSpace.test.js        |
+| 9  | Frontend | Integration | Jest/Redux     | PASSING  | (none)                       |
+| 10 | Frontend | Integration | Jest/Redux     | FAILING  | storeFlow.test.js            |
+| 11 | Frontend | E2E         | Puppeteer      | PASSING  | (none)                       |
+| 12 | Frontend | E2E         | Puppeteer      | FAILING  | .gitlab-ci.yml               |
+
+================================================================================

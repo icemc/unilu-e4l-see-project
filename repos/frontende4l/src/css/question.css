@@ -1,0 +1,234 @@
+/* hide defs svg box */
+.lb-defs { position:absolute; width:0; height:0; overflow:hidden; }
+
+.lb-wrap { text-align:center; }
+
+/* Track */
+.lb-track{
+  position:relative;
+  display:flex;                 /* children line up horizontally */
+  height:18px;
+  border-radius:10px;
+  background: var(--accent-weak, #e7f5ff);
+  overflow:hidden;
+  filter:url(#lb-goo);
+
+}
+
+/* Segment */
+.lb-seg{
+  position:relative;
+  height:100%;
+  border-radius:10px;           /* smoother joins */
+  overflow:hidden;
+  transition: width .55s cubic-bezier(.2,.8,.2,1), background-color .3s ease;
+  will-change: width;
+}
+
+/* Inner liquid (vertical tint) */
+.lb-fill{
+  position:absolute; inset:0;
+  background: linear-gradient(180deg,
+               color-mix(in oklab, currentColor 80%, white 10%) 0%,
+               color-mix(in oklab, currentColor 70%, black 0%) 100%);
+  color: inherit; /* inherits from segment background if using currentColor */
+}
+
+/* Moving wave; rendered via SVG mask embedded as data-uri */
+.lb-wave{
+  position:absolute; left:0; right:0; bottom:0; height:120%;
+  background:
+    linear-gradient(to bottom, transparent 0 55%, rgba(255,255,255,.08) 55% 100%);
+  -webkit-mask: url('data:image/svg+xml;utf8,\
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" preserveAspectRatio="none">\
+      <path d="M0 20 Q25 10 50 20 T100 20 T150 20 T200 20 V40 H0Z" fill="url(%23lb-wave-grad)"/>\
+    </svg>') repeat-x;
+  mask: url('data:image/svg+xml;utf8,\
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" preserveAspectRatio="none">\
+      <path d="M0 20 Q25 10 50 20 T100 20 T150 20 T200 20 V40 H0Z" fill="url(%23lb-wave-grad)"/>\
+    </svg>') repeat-x;
+  animation: lb-flow 2.8s linear infinite;
+  opacity:.95;
+}
+@keyframes lb-flow{ from{ transform:translateX(-200px) } to{ transform:translateX(0) } }
+
+/* Value chip */
+.lb-cap{
+  position:absolute; right:6px; top:50%;
+  transform:translateY(-55%);
+  padding:2px 6px; font-size:12px; color:#fff;
+  background: color-mix(in oklab, currentColor 65%, black 10%);
+  border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,.18);
+}
+
+/* Default palette for up to 7 segments */
+:root{
+  --lb-0:#3b82f6; /* blue   */
+  --lb-1:#16a34a; /* green  */
+  --lb-2:#ef4444; /* red    */
+  --lb-3:#f59e0b; /* amber  */
+  --lb-4:#06b6d4; /* cyan   */
+  --lb-5:#6b7280; /* gray   */
+  --lb-6:#111827; /* almost black */
+}
+
+/* Dark/Adult theme can override accent-weak if you want */
+[data-theme="adult-invert"] .lb-track{
+  background: color-mix(in oklab, var(--accent, #2563eb) 15%, transparent);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  .lb-seg{ transition:none !important; }
+  .lb-wave{ animation: none !important; }
+}
+
+
+
+
+
+
+/*%----------*//**//*-----------------------------*/
+
+
+/* Battery layout */
+.battery {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+
+.battery__body {
+  position: relative;
+  width: min(500px, 80vw);
+  height: 44px;
+  border-radius: 10px;
+  border: 2px solid rgba(0,0,0,0.2);
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(245,245,245,0.7));
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* thinner on compact mode (e.g., mobile fixed footer) */
+.battery--compact .battery__body {
+  height: 30px;
+}
+
+.battery__cap {
+  width: 10px;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--body-text);
+}
+
+.battery--compact .battery__cap {
+  height: 16px;
+}
+
+/* The filling track */
+.battery__fill {
+  position: absolute;
+  inset: 0;
+  display: flex;            /* horizontal stacking */
+}
+
+/* One segment */
+.battery__seg {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* soft separators between segments */
+  box-shadow:
+    inset 1px 0 0 rgba(255,255,255,0.35),
+    inset -1px 0 0 rgba(0,0,0,0.08);
+
+  /* animation */
+  transition: width 820ms cubic-bezier(.22,.9,.25,1.2);
+  animation: batterySquish 650ms ease-out both;
+}
+
+/* label inside a segment */
+.battery__segLabel {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+/* floppy/bouncy vibe */
+@keyframes batterySquish {
+  0%   { transform: scaleY(0.85); }
+  55%  { transform: scaleY(1.08); }
+  80%  { transform: scaleY(0.98); }
+  100% { transform: scaleY(1.00); }
+}
+
+/* world average marker */
+.battery__marker {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: calc(100% + 4px);
+  background: rgba(0,0,0,0);
+}
+
+/* footer text */
+.battery__footer {
+  margin-left: 8px;
+  font-size: 1.05rem;
+}
+
+.battery__footerAvg {
+  color: var(--body-text);
+}
+
+/* Nice default colors if you don’t pass your own */
+.battery__seg:nth-child(7n+1) { --seg: #0d6efd; } /* primary  */
+.battery__seg:nth-child(7n+2) { --seg: #198754; } /* success  */
+.battery__seg:nth-child(7n+3) { --seg: #dc3545; } /* danger   */
+.battery__seg:nth-child(7n+4) { --seg: #ffc107; } /* warning  */
+.battery__seg:nth-child(7n+5) { --seg: #0dcaf0; } /* info     */
+.battery__seg:nth-child(7n+6) { --seg: #6c757d; } /* secondary*/
+.battery__seg:nth-child(7n+7) { --seg: #212529; } /* dark     */
+
+/* Stronger wobble: translate + slight rotate + micro-pulse */
+.battery {
+  will-change: transform;
+  transform-origin: 50% 60%; /* feels nicer than dead-center */
+}
+
+.battery--danger {
+  /* knobs you can tweak per instance via style="--danger-intensity: .9" etc. */
+  --danger-intensity: 0.8;  /* 0..1 */
+  --wobble: 8px;            /* base horizontal travel */
+  --rot: 2deg;              /* base rotation */
+
+  animation: batteryWobbleStrong 800ms ease-in-out infinite;
+}
+
+@keyframes batteryWobbleStrong {
+  0%   { transform: translateX(0) rotate(0) scale(1); }
+  20%  { transform: translateX(calc( var(--wobble) *  1.0 * var(--danger-intensity))) rotate(calc( var(--rot) *  1.0 * var(--danger-intensity))) scale(1.01); }
+  50%  { transform: translateX(0) rotate(0) scale(1.015); }
+  80%  { transform: translateX(calc( var(--wobble) * -1.0 * var(--danger-intensity))) rotate(calc( var(--rot) * -1.0 * var(--danger-intensity))) scale(1.01); }
+  100% { transform: translateX(0) rotate(0) scale(1); }
+}
+
+/* Optional: make the effect pop with a subtle glow pulse */
+.battery--danger .battery__body {
+  border-color: rgba(220, 53, 69, 0.4);
+  box-shadow:
+    0 0 calc(14px * var(--danger-intensity)) rgba(220, 53, 69, 0.26),
+    inset 0 1px 2px rgba(0,0,0,0.08);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .battery--danger { animation: none; }
+}
+

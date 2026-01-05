@@ -1,0 +1,56 @@
+#!/bin/bash
+set -e
+
+# --- Configuration ---
+GITLAB_URL="http://localhost:8929"
+ROOT_TOKEN="glpat-AUTO_GENERATED_TOKEN"
+
+# User Details (Change these if needed)
+USER_USERNAME="testdev"
+USER_PASSWORD="vx6Yo1Mnmn4q7D4Q"
+USER_EMAIL="testdev@example.com"
+USER_NAME="TestDev_User"
+# ---------------------
+
+echo "=== Phase 2: Provisioning Users & Projects ==="
+
+# 1. Create User
+echo "Creating user '$USER_USERNAME'..."
+CREATE_USER_RESPONSE=$(curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     --data "email=$USER_EMAIL&password=$USER_PASSWORD&username=$USER_USERNAME&name=$USER_NAME&skip_confirmation=true" \
+     "$GITLAB_URL/api/v4/users")
+
+# Check for failure
+if [[ $CREATE_USER_RESPONSE != *"id"* && $CREATE_USER_RESPONSE != *"already_taken"* ]]; then
+    echo "Error creating user. Response from GitLab:"
+    echo "$CREATE_USER_RESPONSE"
+fi
+
+# 2. Get User ID (Python parser)
+echo "Fetching ID for user '$USER_USERNAME'..."
+USER_INFO=$(curl --silent --header "PRIVATE-TOKEN: $ROOT_TOKEN" "$GITLAB_URL/api/v4/users?username=$USER_USERNAME")
+USER_ID=$(echo "$USER_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)[0]['id'])" 2>/dev/null || echo "")
+
+if [ -z "$USER_ID" ]; then
+    echo "FAILED: Could not get User ID for '$USER_USERNAME'."
+    echo "Raw User Info: $USER_INFO"
+    exit 1
+fi
+
+echo "User '$USER_USERNAME' exists with ID: $USER_ID"
+
+# 3. Create Projects
+echo "Creating 'backend' repository..."
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     --data "name=backend&user_id=$USER_ID&visibility=public" \
+     "$GITLAB_URL/api/v4/projects/user/$USER_ID" > /dev/null
+
+echo "Creating 'frontend' repository..."
+curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     --data "name=frontend&user_id=$USER_ID&visibility=public" \
+     "$GITLAB_URL/api/v4/projects/user/$USER_ID" > /dev/null
+
+echo "=== Provisioning Complete ==="
+echo "Credentials: $USER_USERNAME / $USER_PASSWORD"
+echo "Backend Repo: $GITLAB_URL/$USER_USERNAME/backend.git"
+echo "Frontend Repo: $GITLAB_URL/$USER_USERNAME/frontend.git"

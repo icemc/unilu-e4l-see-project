@@ -1,0 +1,62 @@
+buildscript {
+    repositories {
+        maven { url "https://repo.spring.io/milestone" }
+        maven { url "https://plugins.gradle.org/m2/" }
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:2.4.2")
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+group 'lu.uni.e4l.platform'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = '17'
+targetCompatibility = '17'
+
+bootJar {
+    archiveFileName = 'e4l-server.jar'
+    destinationDirectory = file("build/libs")
+}
+
+repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://plugins.gradle.org/m2/' }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.1'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.7.1'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.3'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.12.3'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.12.3'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.12.3'
+    implementation 'mysql:mysql-connector-java'
+    implementation 'io.springfox:springfox-swagger2:3.0.0'
+    implementation 'io.springfox:springfox-swagger-ui:3.0.0'
+    implementation 'org.springframework.data:spring-data-rest-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'com.auth0:java-jwt:3.4.0'
+    implementation 'it.ozimov:spring-boot-email-core:0.6.3'
+    implementation 'com.bucket4j:bucket4j-core:8.8.0'
+    implementation 'org.projectlombok:lombok:1.18.26'
+    annotationProcessor 'org.projectlombok:lombok:1.18.26'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'com.h2database:h2:2.2.220'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ["-Xlint:deprecation", "-Xlint:-options"]
+}

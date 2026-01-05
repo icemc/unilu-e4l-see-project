@@ -1,0 +1,53 @@
+# Root-level ignores
+# Artifacts and local caches
+artifacts/
+archive/
+*.log
+
+# Runner configuration (local-only)
+runner-config/
+
+.github/
+
+# OS/Editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.iml
+
+# Env files
+# **/.env
+# **/.env.*
+
+# Docker compose overrides
+**/docker-compose.override.yml
+
+# ==========================
+# Backend (Gradle/Java)
+# ==========================
+source_repos/lu.uni.e4l.platform.api.dev/.gradle/
+source_repos/lu.uni.e4l.platform.api.dev/build/
+source_repos/lu.uni.e4l.platform.api.dev/out/
+source_repos/lu.uni.e4l.platform.api.dev/.idea/
+source_repos/lu.uni.e4l.platform.api.dev/*.iml
+# Test reports and temporary outputs
+source_repos/lu.uni.e4l.platform.api.dev/build/reports/
+source_repos/lu.uni.e4l.platform.api.dev/build/test-results/
+source_repos/lu.uni.e4l.platform.api.dev/build/tmp/
+
+# ==========================
+# Frontend (Node/Webpack/Jest)
+# ==========================
+# Node modules and lockfiles (keep lock if desired)
+source_repos/lu.uni.e4l.platform.frontend.dev/node_modules/
+# Build output used by docker image
+source_repos/lu.uni.e4l.platform.frontend.dev/e4l.frontend.docker/web/dist/
+# Coverage and Jest cache
+source_repos/lu.uni.e4l.platform.frontend.dev/coverage/
+source_repos/lu.uni.e4l.platform.frontend.dev/.nyc_output/
+source_repos/lu.uni.e4l.platform.frontend.dev/.cache/
+# Misc editor/OS
+source_repos/lu.uni.e4l.platform.frontend.dev/.vscode/
+source_repos/lu.uni.e4l.platform.frontend.dev/.idea/
+source_repos/lu.uni.e4l.platform.frontend.dev/*.iml

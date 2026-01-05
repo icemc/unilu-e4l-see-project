@@ -1,0 +1,44 @@
+- name: Provision E4L staging VM
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Docker + compose plugin
+      apt:
+        name:
+          - docker.io
+          - docker-compose-plugin
+        state: present
+
+    - name: Enable and start docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add vagrant user to docker group
+      user:
+        name: vagrant
+        groups: docker
+        append: yes
+
+    - name: Create DB persistent volume dir
+      file:
+        path: /opt/e4l-mysql
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: "0755"
+
+    - name: Create working dir for compose files
+      file:
+        path: /opt/e4l
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: "0755"

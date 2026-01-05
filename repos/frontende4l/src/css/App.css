@@ -1,0 +1,106 @@
+/*.app-container {
+  position: relative;
+}
+
+.cookie-consent-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5); *//* Semi-transparent background *//*
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; *//* Ensure it's above other content *//*
+}
+
+.limited-access {
+  *//* Styles for limited access message *//*
+}*/
+
+
+.app-container {
+  position: relative;
+}
+
+.cookie-consent-overlay {
+  position: fixed;
+  bottom: 1;
+  left: 0;
+/*  background-color: rgba(0, 0, 0, 0.5);*//**/
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s, visibility 0.5s;
+}
+
+.cookie-consent-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.cookie-consent-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s, visibility 0.5s 0.5s; /* Delay hiding */
+}
+
+
+:root {
+  --body-bg: #f8f9fa;      /* default when no theme is applied */
+}
+
+/* default (kid/light) navbar variables */
+/* default (kid/light) navbar variables */
+[data-theme="kid"] {
+  --body-bg: #f8f9fa;
+  --body-text: #242c36;
+}
+
+
+/* dark navbar vars when adult-invert is active */
+[data-theme="adult-invert"] {
+  --body-bg: #25273b;
+  --body-text: #eaf0ff;
+  --body-link: #dbe7ff;
+  --body-link-muted: #a9b8d0;
+  --body-link-hover: #8ec5ff;
+  --body-border: rgba(255,255,255,.08);
+
+    --rev-color: #25273b;
+}
+
+/*--body-bg: #f8f9fa;*//**/
+/* apply variables to the Bootstrap navbar */
+.bg-light {
+  background-color: var(--body-bg) !important;
+  color: var(--body-text) !important;
+  border-bottom: 1px solid var(--body-border);
+}
+
+
+b.myBadult{
+  color: var(--rev-color) !important;
+  border-bottom: 1px solid var(--body-border);
+  font-size:22px
+}
+
+
+label.myBadult{
+  color: var(--rev-color) !important;
+  border-bottom: 1px solid var(--body-border);
+}
+
+
+body {
+  background: radial-gradient(800px circle at 20% 10%, rgba(163, 230, 180, 0.15), transparent),
+              radial-gradient(800px circle at 80% 90%, rgba(56, 189, 248, 0.1), transparent),
+              var(--bg);
+}
+
+
+

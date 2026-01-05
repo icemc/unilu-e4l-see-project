@@ -1,0 +1,21 @@
+version: "3.5"
+
+services:
+  e4l-backend-prod:
+    restart: always
+    image: ${CI_REGISTRY_IMAGE}:release
+    container_name: e4l-backend-prod
+    ports:
+      - "8085:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=${PROD_SPRING_DATASOURCE_URL}
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
+      - RESOURCES_STATIC_URL=${PROD_RESOURCES_STATIC_URL}
+      - TZ=Europe/Luxembourg
+    networks:
+      - e4l-db-net
+
+networks:
+  e4l-db-net:
+    external: true

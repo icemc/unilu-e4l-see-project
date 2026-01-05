@@ -1,0 +1,89 @@
+.cookie-inform-image {
+    max-width: 12%; /* Adjust size as needed */
+    border-radius:10%;
+    margin-right: 2%;
+}
+
+
+.cookie-inform-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #f8f9fa;
+    padding: 10px 20px;
+    margin-bottom: 15px;
+    border-radius: 1em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1050;
+    transition: transform 0.5s ease, opacity 0.5s ease;
+    width: 90%; /* Adjusted for better mobile view */
+    max-width: 1200px; /* Max width for larger screens */
+    visibility: visible;
+    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+}
+.cookie-inform-bar.visible {
+    opacity: 1;
+}
+
+.cookie-inform-bar.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s ease, visibility 0.5s ease 0.5s;
+}
+
+.cookie-inform-text {
+    flex-grow: 1;
+    margin: 0;
+    color:black;
+}
+
+.cookie-inform-text {
+    flex-grow: 1;
+    flex-basis: 60%; /* Give text some room to grow */
+    margin-bottom: 0;
+}
+
+.btn-accept {
+color:black;
+    white-space: nowrap; /* Prevent button text from wrapping */
+    flex-shrink: 0; /* Prevent the button from shrinking */
+}
+
+.language-buttons {
+    display: flex; /* Align buttons in a row */
+    gap: 5px; /* Add some space between buttons */
+}
+
+.btn-language {
+    padding: 0.25rem 0.5rem; /* Smaller padding for language buttons */
+    font-size: 0.8rem; /* Smaller font size for language buttons */
+    line-height: 1; /* Adjust line height to fit the buttons */
+    border-radius: 0.2rem; /* Slightly rounded corners for the buttons */
+}
+
+/* Adjustments for smaller screens */
+@media (max-width: 768px) {
+    .cookie-inform-bar {
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        justify-content: center; /* Center items for a stacked layout */
+    }
+
+    .cookie-inform-image {
+        margin-bottom: 10px; /* Add space between image and text */
+    }
+
+    .cookie-inform-text {
+        text-align: center; /* Center text on smaller screens */
+        flex-basis: auto; /* Allow text to fill the space */
+    }
+
+    .btn-accept {
+        margin-top: 10px; /* Add space above the button on smaller screens */
+    }
+}

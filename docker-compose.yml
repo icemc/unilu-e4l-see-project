@@ -1,0 +1,60 @@
+# version: '3.8'
+
+services:
+  gitlab:
+    image: 'gitlab/gitlab-ce:latest'
+    container_name: gitlab
+    restart: always
+    hostname: 'gitlab.example.com'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://localhost:8929'
+        gitlab_rails['initial_root_password'] = 'Str0ngP@ssw0rd!'
+        gitlab_rails['display_initial_root_password'] = true
+        gitlab_rails['store_initial_root_password'] = true
+        # Optional: optimize for local use (reduce memory)
+        puma['worker_processes'] = 0
+        sidekiq['max_concurrency'] = 10
+        # --- Enable Container Registry ---
+        registry_external_url 'http://localhost:5050'
+        gitlab_rails['registry_enabled'] = true
+        registry['enable'] = true
+    ports:
+      - '8929:8929' # Web UI
+      - '2224:22'   # SSH
+      - '5050:5050'
+    volumes:
+      - '$GITLAB_HOME/config:/etc/gitlab'
+      - '$GITLAB_HOME/logs:/var/log/gitlab'
+      - '$GITLAB_HOME/data:/var/opt/gitlab'
+    networks:
+      - devops-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8929/users/sign_in"]
+      interval: 1m
+      timeout: 10s
+      retries: 5
+    # extra_hosts:
+    #   - "gitlab-registry.local:host-gateway"
+
+  gitlab-runner:
+    image: 'gitlab/gitlab-runner:latest'
+    container_name: gitlab-runner
+    restart: always
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - './runner-config:/etc/gitlab-runner'
+    networks:
+      - devops-net
+    extra_hosts:
+      - "gitlab:host-gateway"
+      - "gitlab.example.com:host-gateway"
+      # - "gitlab-registry.local:host-gateway"
+
+
+networks:
+  devops-net:
+    driver: bridge

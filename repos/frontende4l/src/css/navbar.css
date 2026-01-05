@@ -1,0 +1,508 @@
+.custom-nav-link {
+    color: #007bff !important; /* Default color */
+    text-decoration: none !important; /* Removes underline by default */
+}
+
+/*
+.custom-nav-link:hover {
+    color: #0056b3 !important; */
+/* Color on hover *//*
+
+    text-decoration: underline !important; */
+/* Adds underline on hover *//*
+
+}
+*/
+
+
+/* default (kid/light) navbar variables */
+:root {
+  --nav-bg: #ffffff;
+  --nav-text: #0f172a;
+  --nav-link: #0f172a;
+  --nav-link-muted: #64748b;
+  --nav-link-hover: var(--accent);
+  --nav-border: rgba(0,0,0,.06);
+}
+
+/* dark navbar vars when adult-invert is active */
+[data-theme="adult-invert"] {
+  --nav-bg: #0b1220;
+  --nav-text: #eaf0ff;
+  --nav-link: #dbe7ff;
+  --nav-link-muted: #a9b8d0;
+  --nav-link-hover: #8ec5ff;
+  --nav-border: rgba(255,255,255,.08);
+
+  --bg: #0b1220;           /* page background */
+  --card: #0f172a;         /* card surfaces */
+  --text: #eaf0ff;         /* main text */
+  --muted: #a9b8d0;        /* secondary text */
+  --accent: #60a5fa;       /* primary accent */
+  --accent-weak: rgba(96,165,250,.15);
+  --ring: rgba(96,165,250,.45);
+  --trans-blob: 0%;
+  --def-pulse: #2563eb;
+
+    --grad-1: rgba(255,255,255,.06); /* soft halo color */
+    --grad-2: #0a0f1a;
+
+}
+
+
+
+/* Kid theme: fresh green + warm mint */
+[data-theme="kid"] {
+  --bg: #f6fff9;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #4b5563;
+  --accent: #16a34a;
+  --accent-weak: #e8ffef;
+  --ring: rgba(22,163,74,.35);
+  --grad-1: #edfff5;
+  --grad-2: #ffffff;
+}
+
+
+
+
+
+/* apply variables to the Bootstrap navbar */
+.navbar {
+  background-color: var(--nav-bg) !important;
+  color: var(--nav-text) !important;
+  border-bottom: 1px solid var(--nav-border);
+}
+
+.navbar .navbar-brand,
+.navbar .navbar-text { color: var(--nav-text) !important; }
+
+.navbar .nav-link {
+  color: var(--nav-link) !important;
+  transition: color .25s ease, opacity .25s ease;
+  opacity: .95;
+}
+.navbar .nav-link:hover,
+.navbar .nav-link:focus {
+  color: var(--nav-link-hover) !important;
+  opacity: 1;
+}
+
+/* active/current link */
+.navbar .nav-link.active,
+.navbar .nav-link[aria-current="page"] {
+  color: var(--accent) !important;
+}
+
+/* dropdowns (if you use them) */
+.navbar .dropdown-menu {
+  background: var(--card);
+  border-color: var(--nav-border);
+}
+.navbar .dropdown-item {
+  color: var(--text);
+}
+.navbar .dropdown-item:hover {
+  background: var(--accent-weak);
+  color: var(--text);
+}
+
+/* optional: if your brand logo is dark on dark, brighten it in adult-invert */
+[data-theme="adult-invert"] .navbar .navbar-brand img {
+  filter: brightness(1.15) contrast(1.05);
+}
+
+
+
+
+:root{
+ --color: black;
+}
+
+
+[data-theme="adult-invert"] {
+  --color: white;         /* card surfaces */
+}
+
+.btn{
+  font-weight: 400;
+  padding:20px 5px;
+  color: var(--color);
+  background: none;
+  /*border-radius: 8px;*/
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.liquid {
+  background: linear-gradient(var(--accent) 0 0) no-repeat calc(200% - var(--p, 0%))
+    100% / 200% var(--p, 0.2em);
+  transition: 0.3s var(--t, 0s),
+    background-position 0.3s calc(0.3s - var(--t, 0s));
+}
+
+.liquid:hover {
+  --p: 100%;
+  --t: 0.3s;
+  color: #fff;
+}
+
+
+.togglemy{
+background-color:white;
+
+}
+
+
+
+
+
+/* Theme Toggle Styles */
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    padding: 5px 10px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.theme-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.theme-toggle input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+/* Wrapper for checkbox elements */
+.checkbox-wrapper {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Checkmark (square transforming to star) */
+.checkmark {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #0a0a23, #1c2526);
+    border: 2px solid #4b5eaa;
+    border-radius: 8px;
+    transition:
+        transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+        background 0.3s ease-in-out,
+        border-color 0.3s ease,
+        border-radius 0.3s ease;
+    box-shadow: 0 0 6px rgba(75, 94, 170, 0.3);
+}
+
+/* Hover effect */
+.theme-toggle:hover .checkmark {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(75, 94, 170, 0.5);
+}
+
+/* Checked state: Adult theme (transformed to star) */
+.theme-toggle input:checked ~ .checkbox-wrapper .checkmark {
+    background: linear-gradient(135deg, #ff5e62, #ffd452);
+    border-color: #ffd452;
+    border-radius: 50%;
+    transform: rotate(45deg) scale(1.2);
+    box-shadow: 0 0 15px rgba(255, 212, 82, 0.8);
+}
+
+/* Star checkmark symbol */
+.checkmark::after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    background: transparent;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition:
+        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1.6),
+        opacity 0.3s ease-in-out;
+}
+
+/* Show star when checked (Adult theme) */
+.theme-toggle input:checked ~ .checkbox-wrapper .checkmark::after {
+    display: block;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+/* Nebula glow effect */
+.nebula-glow {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: radial-gradient(
+        circle,
+        rgba(75, 94, 170, 0.3) 10%,
+        transparent 70%
+    );
+    border-radius: 50%;
+    opacity: 0.5;
+    transition:
+        opacity 0.3s ease,
+        transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Nebula swirl when checked (Adult theme) */
+.theme-toggle input:checked ~ .checkbox-wrapper .nebula-glow {
+    opacity: 1;
+    transform: rotate(180deg);
+    background: radial-gradient(
+        circle,
+        rgba(255, 94, 170, 0.5) 10%,
+        rgba(255, 212, 82, 0.3) 70%
+    );
+    animation: swirl 1.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Swirl animation keyframes */
+@keyframes swirl {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Sparkle effect */
+.sparkle-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Sparkle particles */
+.sparkle-container::before,
+.sparkle-container::after {
+    content: "";
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #ffd452;
+    border-radius: 50%;
+    opacity: 0;
+    transition: all 0.6s ease;
+}
+
+/* Sparkle animation when checked (Adult theme) */
+.theme-toggle input:checked ~ .checkbox-wrapper .sparkle-container::before {
+    transform: translate(9px, -9px);
+    opacity: 1;
+    animation: twinkle 0.8s cubic-bezier(0.5, 0, 0.5, 1) forwards;
+}
+
+.theme-toggle input:checked ~ .checkbox-wrapper .sparkle-container::after {
+    transform: translate(-9px, 9px);
+    background: #ff5e62;
+    opacity: 1;
+    animation: twinkle 0.8s cubic-bezier(0.5, 0, 0.5, 1) 0.2s forwards;
+}
+
+/* Twinkle animation keyframes */
+@keyframes twinkle {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5) translate(7px, -7px);
+        opacity: 0;
+    }
+}
+
+/* Pulse effect on hover */
+.checkbox-wrapper::before {
+    content: "";
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    background: rgba(75, 94, 170, 0.2);
+    border-radius: 50%;
+    transform: scale(0);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1.4);
+    z-index: -1;
+}
+
+.theme-toggle:hover .checkbox-wrapper::before {
+    transform: scale(1);
+}
+
+/* Bounce animation when toggled */
+.theme-toggle input:checked ~ .checkbox-wrapper .checkmark {
+    animation: bounce 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Bounce keyframes */
+@keyframes bounce {
+    0%,
+    100% {
+        transform: rotate(45deg) scale(1.2);
+    }
+    50% {
+        transform: rotate(45deg) scale(1.4);
+    }
+}
+
+/* Theme label styling */
+.theme-label {
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.theme-toggle:hover .theme-label {
+    color: #4b5eaa;
+}
+
+.theme-toggle input:checked ~ .theme-label {
+    color: #ff5e62;
+}
+
+
+
+/*-----------------------------------------------------*/
+
+/* Theme Toggle Switch Styles */
+.theme-toggle-container {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.theme-toggle-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.theme-toggle-switch.l {
+    background-color: rgba(0,0,0,0.7);
+    border-radius: 0.75em;
+    box-shadow: 0.125em 0.125em 0 0.125em rgba(0,0,0,0.3) inset;
+    color: #fdea7b;
+    display: inline-flex;
+    align-items: center;
+    margin: auto;
+    padding: 0.15em;
+    width: 3em;
+    height: 1.5em;
+    transition: background-color 0.1s 0.3s ease-out, box-shadow 0.1s 0.3s ease-out;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.theme-toggle-switch.l:before,
+.theme-toggle-switch.l:after {
+    content: "";
+    display: block;
+}
+
+.theme-toggle-switch.l:before {
+    background-color: #d7d7d7;
+    border-radius: 50%;
+    width: 1.2em;
+    height: 1.2em;
+    transition: background-color 0.1s 0.3s ease-out, transform 0.3s ease-out;
+    z-index: 1;
+}
+
+.theme-toggle-switch.l:after {
+    background:
+        linear-gradient(transparent 50%, rgba(0,0,0,0.15) 0) 0 50% / 50% 100%,
+        repeating-linear-gradient(90deg,#bbb 0,#bbb,#bbb 20%,#999 20%,#999 40%) 0 50% / 50% 100%,
+        radial-gradient(circle at 50% 50%,#888 25%, transparent 26%);
+    background-repeat: no-repeat;
+    border: 0.25em solid transparent;
+    border-left: 0.4em solid #d8d8d8;
+    border-right: 0 solid transparent;
+    transition: border-left-color 0.1s 0.3s ease-out, transform 0.3s ease-out;
+    transform: translateX(-22.5%);
+    transform-origin: 25% 50%;
+    width: 1.2em;
+    height: 1em;
+}
+
+/* Checked state (Adult theme) */
+.theme-toggle-switch.l:checked {
+    background-color: rgba(0,0,0,0.45);
+    box-shadow: 0.125em 0.125em 0 0.125em rgba(0,0,0,0.1) inset;
+}
+
+.theme-toggle-switch.l:checked:before {
+    background-color: currentColor;
+    transform: translateX(125%)
+}
+
+.theme-toggle-switch.l:checked:after {
+    border-left-color: currentColor;
+    transform: translateX(-2.5%) rotateY(180deg);
+}
+
+/* Focus state */
+.theme-toggle-switch.l:focus {
+    outline: 0;
+}
+
+/* Theme label styling */
+.theme-toggle-label {
+    font-weight: 500;
+    color: #333;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+}
+
+.theme-toggle-label:hover {
+    color: #4b5eaa;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .theme-toggle-container {
+        margin-left: 10px !important;
+    }
+
+    .theme-toggle-label {
+        font-size: 0.8em !important;
+    }
+
+    .theme-toggle-switch.l {
+        width: 2.5em;
+        height: 1.3em;
+    }
+
+    .theme-toggle-switch.l:before {
+        width: 1em;
+        height: 1em;
+    }
+}
+
+/* Hide the toggle on very small screens if needed */
+@media (max-width: 576px) {
+    .theme-toggle-label {
+        display: none;
+    }
+}

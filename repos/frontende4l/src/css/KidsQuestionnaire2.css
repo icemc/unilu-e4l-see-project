@@ -1,0 +1,1490 @@
+.kids-questionnaire {
+  background: #f8f9fa;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.scale-area {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.answers-area {
+  padding: 20px;
+}
+
+.answers-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.answers-title {
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.answers-grid {
+  display: grid;
+  gap: 15px;
+}
+
+.answer-block {
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.answer-block:hover {
+  border-color: #007bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.answer-block.on-scale {
+  border-color: #28a745;
+  background: #f8fff9;
+}
+
+.answer-block.cannot-select {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.answer-block.animating {
+  pointer-events: none;
+}
+
+.answer-image-container {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.answer-image {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.answer-name {
+  text-align: center;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.on-scale-indicator {
+  color: #28a745;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 5px;
+}
+
+.cannot-select-message {
+  color: #dc3545;
+  font-size: 12px;
+  text-align: center;
+}
+
+.select-hint {
+  color: #6c757d;
+  font-size: 12px;
+  text-align: center;
+}
+
+.scale-display-container {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.ancient-scale {
+  display: block;
+  margin: 0 auto;
+}
+
+.energy-display {
+  text-align: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+.energy-total {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.energy-comparison {
+  color: #6c757d;
+}
+
+.navigation-buttons {
+  margin-top: 30px;
+}
+
+.kids-question-title {
+  color: #333;
+  font-weight: 600;
+}
+
+/* Animation for scale interactions */
+@keyframes scaleBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.answer-block:active {
+  animation: scaleBounce 0.3s ease;
+}
+
+
+
+/* Kids Questionnaire Styles - Clean White Layout */
+.kids-questionnaire {
+  min-height: 100vh;
+  background: white;
+  padding: 20px;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.kids-question-title {
+  color: #1565c0;
+  font-weight: bold;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* REVERSED Main Content Layout - Scale on LEFT, Answers on RIGHT */
+.main-content-reversed {
+  min-height: 600px;
+  gap: 30px;
+  align-items: center;
+}
+
+.scale-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  order: 1; /* Scale comes first (left) */
+}
+
+.answers-area {
+  padding: 20px;
+  order: 2; /* Answers come second (right) */
+}
+
+/* Ancient Scale Styling - Bigger */
+.scale-display-container {
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.ancient-scale-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+}
+
+.ancient-scale {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 8px 25px rgba(0,0,0,0.15));
+  min-height: 500px;
+}
+
+/* Bowl Contents Positioning */
+.right-bowl-answers {
+  position: absolute;
+  top: 9%;
+  left: 58%;
+  transform: translate(-50%, 0);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 250px;
+  justify-content: center;
+  z-index: 10;
+  transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.left-bowl-weights {
+  position: absolute;
+  top: 15%;
+  left: 25%;
+  transform: translate(-50%, 0);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  max-width: 250px;
+  justify-content: center;
+  z-index: 10;
+  transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bowl-answer-item {
+  position: relative;
+  display: inline-block;
+  animation: dropIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bowl-answer-image {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 3px solid #ff9800;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+  background: white;
+}
+
+/* Cross button for current question answers */
+.remove-bowl-answer-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f44336;
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-bowl-answer-btn:hover {
+  background: #d32f2f;
+  transform: scale(1.1);
+}
+
+/* Weight on Scale */
+.weight-on-scale {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: weightAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.weight-shape {
+  width: 50px;
+  height: 75px;
+  background: linear-gradient(135deg, #78909c, #546e7a);
+  border-radius: 8px;
+  position: relative;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.weight-shape::after {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 10px;
+  background: #37474f;
+  border-radius: 4px;
+}
+
+.weight-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #1565c0;
+  margin-top: 8px;
+  background: rgba(255,255,255,0.95);
+  padding: 5px 12px;
+  border-radius: 15px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+  border: 2px solid #e3f2fd;
+}
+
+
+.scale-drop-zone {
+  position: absolute;
+  top: 46%; /* Position relative to the SVG */
+  left: 27%; /* Start from the right bowl area */
+  right: 33%; /* Allow some margin from the right edge */
+  bottom: 20%; /* Allow space at the bottom */
+  border-radius: 12px;
+  transition: background-color 0.3s ease;
+  z-index: 5;
+  /* Remove fixed height and width */
+  max-width: 600px; /* Maximum size but can shrink */
+  min-height: 120px; /* Minimum height */
+}
+
+.scale-drop-zone:hover {
+  background-color: rgba(33, 150, 243, 0.05);
+}
+
+.drop-zone-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  font-size: clamp(1rem, 2vw, 1.3rem); /* Responsive font size */
+  background: rgba(255,255,255,0.95);
+  padding: clamp(15px, 3vw, 20px) clamp(20px, 4vw, 30px); /* Responsive padding */
+  border-radius: 25px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  border: 3px dashed #2196f3;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* Answers Container */
+.answers-container {
+  background: #f8f9fa;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  height: 100%;
+  max-height: 600px;
+  overflow-y: auto;
+  border: 2px solid #e9ecef;
+}
+
+.answers-title {
+  color: #1565c0;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* Answers Grid - Smaller Blocks */
+.answers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.answer-block {
+  background: white;
+  border-radius: 15px;
+  padding: 15px;
+  text-align: center;
+  cursor: grab;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+.answer-block:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  border-color: #2196f3;
+}
+
+.answer-block.on-scale {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #4caf50;
+  background: #f8fff8;
+}
+
+.answer-block.cannot-drag {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #ff5722;
+  background: #fff8f8;
+}
+
+.answer-image {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  border: 2px solid #e0e0e0;
+}
+
+.answer-name {
+  font-weight: bold;
+  color: #333;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+/* Variable Inputs */
+.variable-inputs {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.variable-input {
+  margin-bottom: 8px;
+}
+
+.variable-input label {
+  display: block;
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 4px;
+  text-align: left;
+}
+
+.variable-input input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.variable-input input:focus {
+  outline: none;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+/* Energy Summary */
+.weight-summary {
+  text-align: center;
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  border: 3px solid #2196f3;
+}
+
+.energy-total {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1565c0;
+  margin-bottom: 10px;
+}
+
+.energy-comparison {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.energy-details {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Animations */
+@keyframes dropIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.8);
+  }
+  70% {
+    transform: translateY(10px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes weightAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Navigation */
+.navigation-buttons {
+  text-align: center;
+}
+
+.navigation-buttons .btn {
+  padding: 12px 30px;
+  font-size: 1.1rem;
+  border-radius: 12px;
+  margin: 0 10px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .main-content-reversed {
+    flex-direction: column;
+  }
+
+  .scale-area {
+    order: 1;
+  }
+
+  .answers-area {
+    order: 2;
+  }
+
+  .answers-container {
+    max-height: 400px;
+  }
+
+  .ancient-scale-container {
+    height: 350px;
+  }
+}
+
+@media (max-width: 768px) {
+  .kids-questionnaire {
+    padding: 15px;
+  }
+
+  .ancient-scale-container {
+    height: 280px;
+  }
+
+  .answers-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
+  .answer-image {
+    width: 70px;
+    height: 70px;
+  }
+
+  .bowl-answer-image {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+
+
+
+/*-----------------------------------------------*/
+
+/* Solar Panel Animations */
+.solar-panel-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+
+.solar-panel {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  z-index: 30;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+}
+
+.solar-panel.left-side {
+  animation: fallDownLeft 2s ease-in forwards, spin 3s linear infinite;
+}
+
+.solar-panel.right-side {
+  animation: fallDownRight 2s ease-in forwards, spin 3s linear infinite;
+}
+
+@keyframes fallDownLeft {
+  0% {
+    transform: translate(0, -100px) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-100px, 300px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes fallDownRight {
+  0% {
+    transform: translate(0, -100px) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(100px, 300px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Enhanced Physics Visual Feedback */
+.ancient-scale {
+  transition: filter 0.3s ease;
+}
+
+.scale-display-container.animating .ancient-scale {
+  filter: drop-shadow(0 8px 25px rgba(0,0,0,0.3));
+}
+
+/* Improved Bowl Movements */
+.right-bowl-answers,
+.left-bowl-weights {
+  transition: transform 0.1s linear;
+}
+
+/*-------------------------------------------------------*/
+
+
+
+
+
+
+
+
+
+
+
+.answer-block[data-weight] {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.answer-block[data-weight="heavy"] {
+  border-color: #ff6b6b;
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+}
+
+.answer-block[data-weight="light"] {
+  border-color: #4ecdc4;
+  box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+}
+
+/* Solar panel animation */
+.solar-panel {
+  animation: fallAndRotate 2s ease-in-out;
+  transform-origin: center;
+}
+
+@keyframes fallAndRotate {
+  0% {
+    transform: translateY(-100px) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(0) rotate(180deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(50px) rotate(360deg) scale(0.9);
+    opacity: 0.7;
+  }
+}
+
+/* Physics-based scale movement */
+.ancient-scale {
+  transition: none; /* Remove CSS transitions for physics control */
+}
+
+.beam-movement {
+  transition: transform 0.1s linear; /* Very fast for physics feel */
+}
+
+/* Weight indicator */
+.weight-indicator {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  margin-top: 5px;
+}
+
+
+
+
+
+
+
+/* Make answer blocks more touch-friendly on mobile */
+.answer-block {
+  min-height: 120px;
+  padding: 10px;
+}
+
+.answer-image {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+/* Larger variable inputs */
+.variable-input input {
+  font-size: 16px; /* Prevents zoom on iOS */
+  padding: 8px;
+  min-height: 44px; /* Apple's recommended touch target */
+}
+
+
+/*NEWNEWNENENWENWNENENWNENWENENWNENENNENEWNEWNEWNEWNENENENWENWNENENWNENWENENWNENENNENEWNEWNEWNEWNEWNEWNEWNEWNEWNENEW*/
+
+/* Update the main content layout */
+.main-content-reversed {
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+  align-items: flex-start;
+  min-height: 600px;
+}
+
+.scale-area {
+  flex: 7; /* Give more space to scales */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  order: 1;
+}
+
+.answers-column {
+  flex: 4; /* Less space for answers */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  order: 2;
+}
+
+/* Make answers container vertical with max 3 rows */
+.answers-container {
+  background: #f8f9fa;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  border: 2px solid #e9ecef;
+  max-height: 400px; /* Limit height */
+  overflow-y: auto;
+}
+
+.answers-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns for 2x2 layout */
+  gap: 15px;
+}
+
+/* For when there are more than 4 answers, limit to 3 rows */
+.answers-grid.limited-rows {
+  grid-template-rows: repeat(3, auto);
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+/* Energy display below answers */
+.energy-display-below {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  border: 3px solid #2196f3;
+  text-align: center;
+}
+
+.energy-total {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1565c0;
+  margin-bottom: 8px;
+}
+
+.energy-comparison {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.solar-panel-count {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Make scales bigger by using more available space */
+.scale-display-container {
+  position: relative;
+  width: 100%;
+  max-width: 900px; /* Increased max width */
+  margin: 0 auto;
+}
+
+.ancient-scale {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 8px 25px rgba(0,0,0,0.15));
+}
+
+/*NEWNEWNENENWENWNENENWNENWENENWNENENNENEWNEWNEWNEWNENENENWENWNENENWNENWENENWNENENNENEWNEWNEWNEWNEWNEWNEWNEWNEWNENEW*/
+.balancing-text {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+
+
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  /* Change layout to vertical stack */
+  .main-content-reversed {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .scale-area {
+    order: 1;
+    flex: none;
+    width: 100%;
+    padding: 15px;
+  }
+
+  .answers-column {
+    order: 2;
+    flex: none;
+    width: 100%;
+    padding: 15px;
+  }
+
+  /* Move answers under the scale */
+  .answers-container {
+    max-height: none;
+    margin-top: 20px;
+  }
+
+  /* Adjust scale size for mobile */
+  .scale-display-container {
+    max-width: 100%;
+  }
+
+  .ancient-scale {
+    min-height: 400px;
+  }
+
+  /* Make answer blocks clickable instead of draggable */
+  .answer-block {
+    cursor: pointer !important; /* Force pointer cursor */
+    user-select: none; /* Prevent text selection */
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
+  }
+
+  /* Hide drag-specific styles on mobile */
+  .answer-block:hover {
+    transform: none; /* Remove hover effects that don't work well on touch */
+  }
+
+  /* Add touch feedback */
+  .answer-block:active {
+    background-color: #e3f2fd;
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+
+  /* Adjust answer grid for mobile */
+  .answers-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+
+  /* Make answer blocks larger for touch */
+  .answer-block {
+    min-height: 140px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .answer-image {
+    width: 90px;
+    height: 90px;
+  }
+
+  .answer-name {
+    font-size: 1rem;
+    margin-top: 8px;
+  }
+
+  /* Adjust variable inputs for touch */
+  .variable-input input {
+    min-height: 48px;
+    font-size: 16px; /* Prevent zoom */
+  }
+
+  /* Hide drop zone hint on mobile since we're using click */
+  .scale-drop-zone {
+    display: none;
+  }
+
+  /* Add mobile-specific hint */
+  .mobile-select-hint {
+    display: block;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(33, 150, 243, 0.1);
+    border-radius: 10px;
+    border: 2px dashed #2196f3;
+  }
+
+  /* Adjust energy display */
+  .energy-display-below {
+    padding: 15px;
+    margin-top: 15px;
+  }
+
+  .energy-total {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Further adjustments for very small screens */
+  .answers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .answer-block {
+    min-height: 130px;
+    padding: 12px;
+  }
+
+  .answer-image {
+    width: 80px;
+    height: 80px;
+  }
+
+  .ancient-scale {
+    min-height: 350px;
+  }
+
+  .kids-questionnaire {
+    padding: 10px;
+  }
+
+  .scale-area,
+  .answers-column {
+    padding: 10px;
+  }
+}
+
+/* Add this to your JSX for mobile hint */
+.mobile-select-hint {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-select-hint {
+    display: block;
+  }
+
+  /* Hide the desktop drop zone hint */
+  .drop-zone-hint {
+    display: none;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.info-window {
+  pointer-events: none;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Make answer tiles on scale interactive */
+.ancient-scale g g {
+  transition: filter 0.2s ease;
+}
+
+.ancient-scale g g:hover {
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/*GOOD ANSWERS*/
+
+/* Answer Block with Variables */
+.answer-block.has-variables {
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+}
+
+.answer-block.needs-input {
+  opacity: 0.7;
+  background: #fff3cd;
+  border-color: #ffeaa7;
+}
+
+.answer-block.needs-input .answer-image {
+  filter: grayscale(0.3);
+}
+
+/* Variable Inputs Styling */
+.variable-inputs {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #dee2e6;
+}
+
+.variable-form-group {
+  margin-bottom: 10px;
+}
+
+.variable-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+.variable-hint {
+  display: block;
+  font-size: 10px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* Radio Options */
+.radio-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+}
+
+.radio-option label {
+  font-size: 12px;
+  color: #495057;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Status Indicators */
+.needs-input-indicator {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: #ffc107;
+  color: #856404;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.input-required-message {
+  background: #fff3cd;
+  color: #856404;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-top: 10px;
+  text-align: center;
+  border: 1px solid #ffeaa7;
+}
+
+/* Disabled state for blocks needing input */
+.answer-block.needs-input {
+  cursor: not-allowed;
+}
+
+.answer-block.needs-input .answer-image-container {
+  pointer-events: none;
+}
+
+/* Select dropdown styling */
+.basic-single {
+  font-size: 12px;
+}
+
+.basic-single .css-1s2u09g-control {
+  min-height: 32px;
+}
+
+.basic-single .css-1pahdxg-control {
+  min-height: 32px;
+}
+
+/* Number input styling */
+.variable-form-group input[type="number"] {
+  height: 32px;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .answer-block.has-variables {
+    padding: 10px;
+  }
+
+  .variable-inputs {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  .radio-options {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .needs-input-indicator {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+}
+
+
+
+
+.on-scale-locked {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: #6c757d;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.on-scale-message {
+  background: #e9ecef;
+  color: #495057;
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  margin-top: 8px;
+  text-align: center;
+  border: 1px solid #dee2e6;
+}
+
+/* Hide variable inputs when on scale */
+.answer-block.on-scale .variable-inputs {
+  display: none;
+}
+
+/* Better radio button styling */
+.radio-option input[type="radio"] {
+  margin-right: 5px;
+  transform: scale(1.1);
+}
+
+.radio-option label {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Debug state for radio buttons */
+.radio-option input[type="radio"]:checked + label {
+  font-weight: bold;
+  color: #0d6efd;
+}
+
+
+
+
+/* Style for count inputs */
+.variable-form-group.count-input input[type="number"] {
+  border-color: #28a745;
+}
+
+.variable-form-group.count-input:not(.filled) input[type="number"] {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+/* Visual indicator for required count inputs */
+.count-required::after {
+  content: " *";
+  color: #dc3545;
+}
+
+
+
+
+.answer-tile-group[data-question-index] {
+  transition: transform 0.3s ease;
+}
+
+/* Visual grouping for stacks */
+.answer-tile-group[data-question-index]:not(:first-child) {
+  /* Add subtle shadow to show stacking */
+  filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.1));
+}
+
+/* Question group indicators */
+.question-stack-indicator {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* Hover effects for stacked answers */
+.answer-tile-group:hover {
+  z-index: 10;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+}
+
+/* Mobile responsive stacking */
+@media (max-width: 768px) {
+  .answer-tile-group {
+    transform: scale(0.9);
+  }
+}
+
+
+
+
+
+
+/* Add to Scale Button Responsive Styles */
+.add-to-scale-button-container {
+  margin-top: 10px;
+  width: 100%;
+}
+
+.add-to-scale-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.add-to-scale-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #45a049, #4CAF50);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.add-to-scale-btn:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+.add-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 900px) {
+  .add-to-scale-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+    min-height: 36px; /* Ensure minimum touch target size */
+  }
+
+  .add-icon {
+    font-size: 14px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .add-to-scale-btn {
+    padding: 5px 8px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+
+  .add-icon {
+    font-size: 12px;
+  }
+}
+
+/* For very small screens, you can also change the layout */
+@media (max-width: 360px) {
+  .add-to-scale-btn {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+}
+
+
+
+
+
+
+
+/* Add to your KidsQuestionnaire2.css */
+
+/* Mobile-specific scale styles */
+@media (max-width: 768px) {
+  .scale-display-container {
+    transform: scale(0.85);
+    transform-origin: top center;
+  }
+
+  .ancient-scale {
+    touch-action: manipulation;
+  }
+
+  .answer-tile-group {
+    /* Larger touch targets on mobile */
+    transform: scale(1.1);
+  }
+
+  .energy-text {
+    font-size: 16px !important;
+    font-weight: bold;
+    paint-order: stroke;
+    stroke: #000;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .kwh-label {
+    font-size: 10px !important;
+  }
+}
+
+/* Prevent text selection and improve touch */
+.answer-tile-group {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.answer-tile-bg {
+  transition: all 0.2s ease;
+}
+
+.answer-tile-image {
+  transition: opacity 0.2s ease;
+}
+
+
+/* Add to your existing mobile styles */
+@media (max-width: 537px) {
+  .answer-tile-group {
+    transform: scale(0.9); /* Slightly smaller tiles on very small screens */
+  }
+
+  /* Ensure the SVG container has enough height for multiple rows */
+  .ancient-scale {
+    min-height: 500px; /* Adjust based on your needs */
+  }
+}
+
+@media (max-width: 360px) {
+  /* For very small screens, you might need even smaller tiles */
+  .answer-tile-group {
+    transform: scale(0.85);
+  }
+
+  /* Adjust tile spacing constants if needed */
+  .ancient-scale {
+    min-height: 450px;
+  }
+}

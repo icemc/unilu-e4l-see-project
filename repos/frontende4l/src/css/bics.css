@@ -1,0 +1,40 @@
+/* Container that keeps height during transitions */
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Where pages live during transitions */
+.page-wrapper {
+  position: relative;
+  overflow: hidden; /* hides the sliding edges */
+}
+
+/* Animated page */
+.page {
+  position: relative;
+}
+
+/* ENTER: new page comes from bottom */
+.page-enter {
+  opacity: 0;
+  transform: translateY(40px); /* start a bit below */
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+}
+
+/* EXIT: old page goes slightly up and fades */
+.page-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateY(-20px); /* small move up */
+  transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+}

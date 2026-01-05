@@ -1,0 +1,87 @@
+.print-header {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.print-logo {
+    max-width: 100px; /* Adjust size as needed */
+    height: auto;
+}
+
+.logo-text {
+    font-size: 20px; /* Adjust the font size as needed */
+    font-weight: bold; /* Optional: if you want bold text */
+    /* Add any additional styling for the text here */
+}
+
+.print-timestamp {
+    font-family: 'Arial', sans-serif;
+    font-size: 20px;
+    text-align: right;
+}
+
+@media print {
+    .print-header {
+        display: flex;
+    }
+
+    .print-logo, .print-timestamp {
+        display: block;
+    }
+
+  .no-print {
+     display: none;
+  }
+   #content-to-print, #content-to-print * {
+      visibility: visible;
+   }
+   #content-to-print {
+      position: relative;
+      left: 0;
+      top: 0;
+   }
+   .page-break {
+         page-break-after: always;
+      }
+   /* Other print-specific styles */
+}
+
+
+.bg-light {
+  background-color: white !important;
+  color: black !important;
+  border-bottom: 1px solid var(--body-border);
+}
+
+
+
+.reverse{
+ background-color: white;
+ color: black;
+}
+
+/*
+
+body {
+  background-color: white;
+  color: black;
+}
+
+*/
+/*
+ Override some Bootstrap bits lightly
+*//*
+
+
+.card { background: white; }
+.card-header { background: white; border-bottom-color: rgba(0,0,0,.06); }
+.btn-accent {
+  background: white;
+  border-color: black;
+}
+.btn-accent:hover { filter: brightness(0.96); }
+h5, h3, h6, a, p, .btn  { color: black; }
+
+*/

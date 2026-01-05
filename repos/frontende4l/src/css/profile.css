@@ -1,0 +1,41 @@
+.validate-password-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height:auto; /* or adjust as needed */
+    padding: 20px;
+}
+
+.validate-password-form {
+    width: 100%;
+    max-width: 600px; /* Adjust as per your design */
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    text-align: center;
+}
+
+.error-message {
+    color: red;
+    margin-bottom: 10px;
+}
+
+.validate-password-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.password-input {
+    margin-bottom: 10px;
+}
+
+@media (max-width: 600px) {
+    .validate-password-container {
+        height: auto;
+    }
+    .validate-password-form {
+        padding: 10px;
+    }
+}

@@ -1,0 +1,71 @@
+variables:
+  DOCKER_HOST: "tcp://docker:2375"
+  DOCKER_TLS_CERTDIR: ""
+
+stages:
+  - docker_build
+  - deploy_staging
+
+services:
+  - name: docker:24-dind
+    alias: docker
+
+docker_build_frontend:
+  stage: docker_build
+  image: docker:24
+  tags: [juno]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - docker version
+
+    # Docker Hub login (CI_REGISTRY=docker.io)
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+    # Build + push (CI_REGISTRY_IMAGE=minfranco/e4l-frontend)
+    - docker build -t "$CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+
+deploy_staging_frontend:
+  stage: deploy_staging
+  image: alpine:3.20
+  tags: [juno]
+  needs: ["docker_build_frontend"]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+  before_script:
+    - apk add --no-cache openssh-client bash coreutils
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - printf "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+
+  script:
+    - |
+      set -euo pipefail
+
+      STAGE_HOST_CLEAN="$(printf '%s' "$STAGE_HOST" | tr -d '\r\n')"
+      STAGE_USER_CLEAN="$(printf '%s' "$STAGE_USER" | tr -d '\r\n')"
+      STAGE_PORT_CLEAN="$(printf '%s' "$STAGE_SSH_PORT" | tr -d '\r\n')"
+      STAGE_PATH_CLEAN="$(printf '%s' "$STAGE_PATH" | tr -d '\r\n')"
+
+      # Stavi compose na VM (isti layout kao što si ručno koristio)
+      ssh -p "$STAGE_PORT_CLEAN" "$STAGE_USER_CLEAN@$STAGE_HOST_CLEAN" \
+        "mkdir -p '$STAGE_PATH_CLEAN/e4l.frontend.docker'"
+
+      scp -P "$STAGE_PORT_CLEAN" e4l.frontend.docker/docker-compose.frontend.staging.yml \
+        "$STAGE_USER_CLEAN@$STAGE_HOST_CLEAN:$STAGE_PATH_CLEAN/e4l.frontend.docker/docker-compose.frontend.staging.yml"
+
+      # Deploy: login na docker.io + pull + up
+      ssh -p "$STAGE_PORT_CLEAN" "$STAGE_USER_CLEAN@$STAGE_HOST_CLEAN" \
+        "set -euo pipefail;
+         cd '$STAGE_PATH_CLEAN/e4l.frontend.docker';
+         echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
+         export FRONTEND_IMAGE='${CI_REGISTRY_IMAGE}';
+         docker compose -f docker-compose.frontend.staging.yml pull;
+         docker compose -f docker-compose.frontend.staging.yml up -d --remove-orphans;
+         docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep e4l-frontend-staging || true"

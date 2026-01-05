@@ -1,0 +1,17 @@
+version: "3.5"
+
+services:
+  e4l-frontend-staging:
+    image: ${FRONTEND_IMAGE}:latest
+    container_name: e4l-frontend-staging
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    networks:
+      - e4l-db-net
+
+networks:
+  e4l-db-net:
+    external: true
+    name: e4l-db-net
+

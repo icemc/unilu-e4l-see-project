@@ -1,0 +1,23 @@
+version: "3.5"
+
+services:
+  e4l-db:
+    restart: always
+    image: mariadb:10.4.7
+    container_name: e4l-db
+    volumes:
+      - /opt/e4l-mysql:/var/lib/mysql
+      - ${DUMP_DIR}:${DUMP_DIR}
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_USER=${MYSQL_USERNAME}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_HOST=%
+      - TZ=Europe/Luxembourg
+    networks:
+      - e4l-db-net
+
+networks:
+  e4l-db-net:
+    external: false
+    name: e4l-db-net

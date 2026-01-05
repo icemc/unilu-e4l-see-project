@@ -1,0 +1,120 @@
+.bg-light{
+color:black !important;
+}
+
+
+/* ====== Answer tile interactions ====== */
+
+.answer-tile {
+  --tile-bg: var(--card, #fff);
+  --tile-border: rgba(0,0,0,.08);
+  --tile-shadow: 0 8px 22px rgba(0,0,0,.06);
+  --tile-radius: 16px;
+
+  position: relative;
+  background: white;
+  border: 1px solid var(--tile-border);
+  border-radius: var(--tile-radius);
+  box-shadow: var(--tile-shadow);
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    transform .35s cubic-bezier(.2, .7, .2, 1),
+    box-shadow .35s ease,
+    border-color .25s ease,
+    background-color .25s ease,
+    filter .25s ease;
+}
+
+/* subtle gradient/border layer (used for hover + selected) */
+.answer-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--tile-radius);
+  padding: 2px;                      /* border thickness */
+  background: linear-gradient(135deg, var(--accent, #16a34a), color-mix(in oklab, var(--accent, #16a34a) 55%, white 45%));
+  -webkit-mask:                 /* gradient border trick */
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+}
+
+/* hover: gentle lift + tiny tilt + inner glow */
+.answer-tile:hover {
+  transform: translateY(-6px) rotateX(1deg) rotateY(-1deg);
+  box-shadow: 0 16px 36px rgba(0,0,0,.12);
+}
+.answer-tile:hover::before { opacity: .45; }
+
+
+/* keyboard focus */
+.answer-tile:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring, rgba(22,163,74,.35)), var(--tile-shadow);
+}
+
+/* Selected: strong accent border + pulse */
+.answer-tile.selected::before {
+  opacity: 1;
+  animation: tileGlow 1200ms ease-in-out infinite;
+}
+@keyframes tileGlow {
+  0%,100% { filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+  50%     { filter: drop-shadow(0 0 10px color-mix(in oklab, var(--accent, #16a34a) 50%, transparent)); }
+}
+
+/* Not selectable: dim + no lift */
+.answer-tile.notSelectable {
+  cursor: not-allowed;
+  filter: grayscale(.2) saturate(.9);
+  opacity: .7;
+}
+.answer-tile.notSelectable:hover { transform: none; box-shadow: var(--tile-shadow); }
+.answer-tile.notSelectable::before { opacity: 0; }
+
+/* Image parallax on hover (uses your existing classes) */
+.answer-tile .imageAnswersDiv { overflow: hidden; border-radius: calc(var(--tile-radius) - 6px); }
+.answer-tile .imageAnswers {
+  will-change: transform;
+  transform: scale(1) translateY(0);
+  transition: transform .45s cubic-bezier(.2,.7,.2,1);
+}
+.answer-tile:hover .imageAnswers {
+  transform: scale(1.04) translateY(-2px);
+}
+
+/* Title styling (your .myBadult class is used; we add hover color) */
+.answer-tile .myBadult {
+  display: inline-block;
+  margin-top: .35rem;
+  color: var(--text, #0f172a);
+  transition: color .25s ease, transform .25s ease;
+}
+.answer-tile:hover .myBadult { color: var(--accent, #16a34a); transform: translateY(-1px); }
+
+/* Inputs block: keep padded & readable inside tiles with vars */
+.answer-tile.has-vars form { padding: .75rem 1rem 1rem; }
+
+/* Click ripple (pure CSS) */
+.answer-tile:active::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: var(--tile-radius);
+  background: radial-gradient(120px 120px at var(--rx, 50%) var(--ry, 50%), color-mix(in oklab, var(--accent, #16a34a) 20%, transparent), transparent 60%);
+  animation: ripple .55s ease-out;
+  pointer-events: none;
+}
+@keyframes ripple {
+  from { opacity: .35; }
+  to   { opacity: 0; }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .answer-tile, .answer-tile .imageAnswers, .answer-tile::before { transition: none !important; }
+}

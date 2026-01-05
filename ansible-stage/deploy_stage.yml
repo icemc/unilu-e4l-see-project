@@ -1,0 +1,24 @@
+---
+- name: Deploy frontend to STAGE
+  hosts: stage
+  become: yes
+
+  tasks:
+    - name: Ensure /opt/stage-frontend exists
+      file:
+        path: /opt/stage-frontend
+        state: directory
+        mode: '0755'
+
+    - name: Create simple index.html as placeholder
+      copy:
+        dest: /opt/stage-frontend/index.html
+        content: |
+          <html>
+            <head><title>Stage Frontend</title></head>
+            <body>
+              <h1>Stage frontend deployed via Ansible 🚀</h1>
+            </body>
+          </html>
+        mode: '0644'
+
