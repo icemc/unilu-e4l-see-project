@@ -1,7 +1,5 @@
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false"
-  DOCKER_HOST: "tcp://docker:2375"
-  DOCKER_TLS_CERTDIR: ""  
 
 stages:
 - pre-build
@@ -10,11 +8,6 @@ stages:
 - docker build
 - deploy staging
 - deploy production
-
-services:
-- name: docker:dind
-  alias: docker
-  
 
 before_script:
 - export GRADLE_USER_HOME=`pwd`/.gradle

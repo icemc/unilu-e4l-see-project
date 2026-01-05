@@ -1,15 +1,7 @@
-variables:
-  DOCKER_HOST: "tcp://docker:2375"
-  DOCKER_TLS_CERTDIR: ""
-
 stages:
   - docker_build
   - deploy_staging
   - deploy_production
-
-services:
-  - name: docker:24-dind
-    alias: docker
 
 docker_build_frontend:
   stage: docker_build
