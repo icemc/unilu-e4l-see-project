@@ -56,6 +56,21 @@ cd "$STAGE_DIR"
 
 ok "ansible-stage directory structure looks correct"
 
+# -------- clean up any existing VM --------
+echo
+echo "Checking for existing VM..."
+if vagrant status 2>/dev/null | grep -q "running\|saved\|poweroff"; then
+  echo "Found existing VM. Destroying to avoid user mismatch issues..."
+  vagrant destroy -f
+  ok "Existing VM destroyed"
+elif [ -d ".vagrant" ]; then
+  echo "Found .vagrant directory from previous setup. Cleaning up..."
+  rm -rf .vagrant
+  ok ".vagrant directory removed"
+else
+  ok "No existing VM found"
+fi
+
 # -------- start VM --------
 echo
 echo "Starting STAGING VM via Vagrant..."
