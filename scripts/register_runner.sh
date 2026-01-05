@@ -15,14 +15,17 @@ echo "Setting up runner config directory..."
 mkdir -p ./runner-config
 chmod 755 ./runner-config
 
+# Restart gitlab-runner to ensure clean state
+echo "Restarting gitlab-runner container..."
+docker restart gitlab-runner
+sleep 5
+
 # Clean up existing runners
 echo "Cleaning up existing runners..."
 docker exec gitlab-runner gitlab-runner unregister --all-runners || true
 
-# Remove old config
-rm -f ./runner-config/config.toml
-touch ./runner-config/config.toml
-chmod 666 ./runner-config/config.toml
+# Ensure config file exists in container
+docker exec gitlab-runner touch /etc/gitlab-runner/config.toml
 
 register_for_project() {
     PROJECT_PATH=$1
@@ -55,7 +58,21 @@ register_for_project() {
       --docker-volumes "/var/run/docker.sock:/var/run/docker.sock" \
       --docker-volumes "/cache"
     
-    echo "Runner '$RUNNER_NAME' registered successfully"
+    # Get the runner ID from the response
+    sleep 2
+    RUNNER_ID=$(curl --silent --header "PRIVATE-TOKEN: $ROOT_TOKEN" "$GITLAB_URL/api/v4/runners/all" | \
+                python3 -c "import sys, json; runners = json.load(sys.stdin); print(next((str(r['id']) for r in runners if r['description'] == '$RUNNER_NAME'), ''))")
+    
+    if [ -n "$RUNNER_ID" ]; then
+        # Enable the runner for the specific project
+        PROJECT_ID=$(echo "$PROJECT_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])")
+        curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+             "$GITLAB_URL/api/v4/projects/$PROJECT_ID/runners" \
+             --data "runner_id=$RUNNER_ID" > /dev/null
+        echo "✓ Runner '$RUNNER_NAME' (ID: $RUNNER_ID) registered and assigned to project"
+    else
+        echo "✓ Runner '$RUNNER_NAME' registered"
+    fi
 }
 
 # Register for Backend
@@ -63,5 +80,10 @@ register_for_project "testdev/backend" "backend-runner"
 
 # Register for Frontend
 register_for_project "testdev/frontend" "frontend-runner"
+
+# Restart runner to apply configuration
+echo ""
+echo "Restarting gitlab-runner to apply configuration..."
+docker restart gitlab-runner
 
 echo "=== All Runners Registered ==="
