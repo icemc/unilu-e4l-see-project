@@ -8,11 +8,11 @@
         update_cache: yes
         cache_valid_time: 3600
 
-    - name: Install Docker + compose plugin
+    - name: Install Docker and Docker Compose
       apt:
         name:
           - docker.io
-          - docker-compose-plugin
+          - docker-compose
         state: present
 
     - name: Enable and start docker
