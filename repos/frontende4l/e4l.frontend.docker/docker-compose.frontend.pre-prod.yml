@@ -10,7 +10,14 @@ services:
     volumes:
       - /opt/e4l-news:/usr/share/nginx/news
     environment:
-      - PUBLIC_PATH=
-      - API_URL=/e4lapi
+      - PUBLIC_PATH=/
+      - API_URL=/API_URL
       - TZ=Europe/Luxembourg
+    networks:
+      - e4l-db-net
+
+networks:
+  e4l-db-net:
+    external: true
+    name: e4l-db-net
       

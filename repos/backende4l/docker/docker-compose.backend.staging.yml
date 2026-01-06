@@ -8,10 +8,14 @@ services:
     ports:
       - "8084:8080"
     environment:
-      - SPRING_DATASOURCE_URL=${STAGING_SPRING_DATASOURCE_URL}
-      - SPRING_DATASOURCE_USERNAME=${MYSQL_USERNAME}
-      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
-      - RESOURCES_STATIC_URL=${STAGING_RESOURCES_STATIC_URL}
+      - DEV_SPRING_DATASOURCE_URL=jdbc:mysql://e4l-db:3306/e4l?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - DEV_SPRING_DATASOURCE_USERNAME=e4l_user
+      - DEV_SPRING_DATASOURCE_PASSWORD=e4l_secure_password
+      - DEV_RESOURCES_STATIC_URL=http://192.168.56.11:8082
+      - JWT_SECRET=mySecretKey123456789012345678901234567890
+      - SIGNATURE_KEY=mySignatureKey12345678901234567890123456
+      - ADMIN_EMAIL=admin@e4l.lu
+      - ADMIN_PASSWORD=admin123
       - TZ=Europe/Luxembourg
     networks:
       - e4l-db-net
