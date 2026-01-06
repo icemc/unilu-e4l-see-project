@@ -211,6 +211,18 @@ if ! docker network rm unilu-e4l-see-project_devops-net 2>/dev/null; then
     echo "⚠️  WARNING: Network unilu-e4l-see-project_devops-net could not be removed (may not exist). Continuing..."
 fi
 
+if ! docker network rm e4l-gitlab_default 2>/dev/null; then
+    echo "⚠️  WARNING: Network e4l-gitlab_default could not be removed (may not exist). Continuing..."
+fi
+
+if ! docker network rm e4l-work_default 2>/dev/null; then
+    echo "⚠️  WARNING: Network e4l-work_default could not be removed (may not exist). Continuing..."
+fi
+
+if ! docker network rm e4l-lab_e4l-net 2>/dev/null; then
+    echo "⚠️  WARNING: Network e4l-lab_e4l-net could not be removed (may not exist). Continuing..."
+fi
+
 if ! docker network rm e4l-db-net 2>/dev/null; then
     echo "⚠️  WARNING: Network e4l-db-net could not be removed (may not exist). Continuing..."
 fi
