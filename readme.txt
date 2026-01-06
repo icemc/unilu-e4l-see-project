@@ -134,33 +134,33 @@ ARCHITECTURE - THREE ENVIRONMENTS
 │  │                              │  │                              │     │
 │  │  Deployed from: dev branch   │  │  Deployed from: main branch  │     │
 │  └──────────────────────────────┘  └──────────────────────────────┘     │
-Backend Pipeline (7 Stages with Quality Gates):
-    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌──────────────┐    ┌────────────┐
-    │PRE-BUILD│───►│  BUILD  │───►│UNIT TEST │───►│INTEGRATION   │───►│DOCKER BUILD│
-    └─────────┘    └─────────┘    └──────────┘    └──────────────┘    └─────┬──────┘
-         │              │               │                 │                   │
-    Set vars      ./gradlew       JUnit tests     Spring Boot          Push image
-                   build          (20 tests)      integration          to Docker Hub
-                                                  (4 tests)
+Backend Pipeline (9 Stages with Quality Gates):
+    ┌─────────┐    ┌─────────┐    ┌──────────┐    ┌──────────────┐    ┌───────────────┐
+    │PRE-BUILD│───►│  BUILD  │───►│UNIT TEST │───►│INTEGRATION   │───►│DOCKER BUILD   │
+    └─────────┘    └─────────┘    └──────────┘    └──────────────┘    └───────┬───────┘
+         │              │               │                 │                     │
+    Set vars      ./gradlew       JUnit tests     Spring Boot          Build & push
+                   build          (20 tests)      integration          STAGING image
+                                                  (4 tests)             to Docker Hub
 
                                     Branch determines deployment:
                                     • dev  → STAGING (192.168.56.11)
-                                    • main → STAGING + E2E → PRODUCTION (192.168.56.12)
+                                    • main → STAGING + E2E → PROD BUILD → PRODUCTION (192.168.56.12)
 
                                     Only on main branch:
-                                    ┌──────────┐    ┌─────────────┐    ┌────────────┐
-                                    │  DEPLOY  │───►│E2E ACCEPTANCE│───►│   DEPLOY   │
-                                    │ STAGING  │    │    TESTS     │    │ PRODUCTION │
-                                    └──────────┘    └─────────────┘    └────────────┘
-                                         │                 │                   │
-                                    SSH to VM        Newman/Postman      SSH to VM
-                                    docker-compose   5 E2E tests         docker-compose
-                                                     (15 assertions)
+                                    ┌──────────┐    ┌─────────────┐    ┌───────────────┐    ┌────────────┐
+                                    │  DEPLOY  │───►│E2E ACCEPTANCE│───►│  DOCKER BUILD │───►│   DEPLOY   │
+                                    │ STAGING  │    │    TESTS     │    │  PRODUCTION   │    │ PRODUCTION │
+                                    └──────────┘    └─────────────┘    └───────────────┘    └────────────┘
+                                         │                 │                    │                    │
+                                    SSH to VM        Newman/Postman      Build & push         SSH to VM
+                                    docker-compose   4 E2E tests         PROD image          docker-compose
+                                                     (12 assertions)     ONLY if E2E pass
                                                      on staging API
                                                      (192.168.56.11
                                                       :8084)
 
-                                    CRITICAL: Production deployment blocked if E2E tests fail
+                                    CRITICAL: Production image build & deployment blocked if E2E tests fail
 
 Frontend Pipeline (7 Stages with Quality Gates):
     ┌─────────┐    ┌──────────┐    ┌─────────────┐    ┌─────────────┐    ┌──────────┐

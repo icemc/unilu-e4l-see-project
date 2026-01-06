@@ -139,7 +139,7 @@ BRANCHING STRATEGY:
                      BACKEND PIPELINE & DEPLOYMENT FLOW
 ================================================================================
 
-    BACKEND CI/CD PIPELINE (7 Stages with Quality Gates)
+    BACKEND CI/CD PIPELINE (9 Stages with Quality Gates)
     
     ┌─────────────────────────────────────────────────────────────────────────┐
     │   Developer commits to Backend Repo (dev or main branch)                │
@@ -180,11 +180,9 @@ BRANCHING STRATEGY:
                          │
                          ▼
     ┌─────────────────────────────────────────────────────────────────────────┐
-    │   STAGE 5: DOCKER BUILD                                                 │
+    │   STAGE 5: DOCKER BUILD (STAGING)                                       │
     │   • Build Docker image from JAR                                         │
-    │   • Tag based on branch:                                                │
-    │     - dev  → minfranco/e4l-backend-stage:latest                         │
-    │     - main → minfranco/e4l-backend-prod:release                         │
+    │   • Tag: minfranco/e4l-backend-stage:latest                             │
     │   • Push to Docker Hub (docker.io)                                      │
     └────────────────────┬────────────────────────────────────────────────────┘
                          │
@@ -195,53 +193,62 @@ BRANCHING STRATEGY:
            ▼                           ▼
     ┌──────────────────┐      ┌──────────────────────────────────────────────┐
     │  STAGE 6:        │      │  STAGE 6: DEPLOY STAGING                     │
-    │  DEPLOY STAGING  │      │  (Required for E2E tests)                    │
+    │  DEPLOY STAGING  │      │  (Required for E2E tests on main)            │
     └──────────────────┘      └───────────────┬──────────────────────────────┘
            │                                  │
            ▼                                  ▼
     ┌──────────────────┐      ┌──────────────────────────────────────────────┐
     │  SSH to VM:      │      │  SSH to VM: 192.168.56.11                    │
     │  192.168.56.11   │      │  Commands:                                   │
-    │  Port: 2222      │      │  • cd /opt/e4l                               │
+    │  Port: 2222      │      │  • cd /opt/e4l/docker                        │
     │  User: vagrant   │      │  • docker-compose pull                       │
     │  Key: devops_    │      │  • docker-compose up -d                      │
     │       stage      │      │  Result: Backend running at :8084            │
     │                  │      └───────────────┬──────────────────────────────┘
     │  Commands:       │                      │
-    │  • cd /opt/e4l   │                      ▼
-    │  • docker-compose│      ┌──────────────────────────────────────────────┐
-    │    pull          │      │  STAGE 7: E2E ACCEPTANCE TESTS               │
-    │  • docker-compose│      │  (Only on main branch - Quality Gate)        │
-    │    up -d         │      │                                              │
-    │                  │      │  • Newman/Postman collection runner          │
-    │  Result:         │      │  • 5 E2E tests (15 assertions)               │
-    │  Backend running │      │  • Tests against staging: 192.168.56.11:8084 │
-    │  at :8084        │      │  • Health checks, API endpoints, CORS        │
-    └──────────────────┘      │  • Session creation, response count          │
-                              └───────────────┬──────────────────────────────┘
+    │  • cd /opt/e4l/  │                      ▼
+    │    docker        │      ┌──────────────────────────────────────────────┐
+    │  • docker-compose│      │  STAGE 7: E2E ACCEPTANCE TESTS               │
+    │    pull          │      │  (Only on main branch - Quality Gate)        │
+    │  • docker-compose│      │                                              │
+    │    up -d         │      │  • Newman/Postman collection runner          │
+    │                  │      │  • 4 E2E tests (12 assertions)               │
+    │  Result:         │      │  • Tests against staging: 192.168.56.11:8084 │
+    │  Backend running │      │  • Health checks, API endpoints, CORS        │
+    │  at :8084        │      │  • Response count, seminars list             │
+    └──────────────────┘      └───────────────┬──────────────────────────────┘
                                               │
                                               ▼ (E2E PASS?)
                               ┌──────────────────────────────────────────────┐
-                              │  STAGE 8: DEPLOY PRODUCTION                  │
-                              │  (Only if E2E tests pass)                    │
+                              │  STAGE 8: DOCKER BUILD (PRODUCTION)          │
+                              │  (Only if E2E tests pass - Quality Gate)     │
+                              │                                              │
+                              │  • Build Docker image from JAR               │
+                              │  • Tag: minfranco/e4l-backend-prod:release   │
+                              │  • Push to Docker Hub (docker.io)            │
+                              └───────────────┬──────────────────────────────┘
+                                              │
+                                              ▼
+                              ┌──────────────────────────────────────────────┐
+                              │  STAGE 9: DEPLOY PRODUCTION                  │
+                              │  (Only if docker build succeeds)             │
                               │                                              │
                               │  SSH to VM: 192.168.56.12                    │
                               │  Commands:                                   │
-                              │  • cd /opt/e4l-prod                          │
+                              │  • cd /opt/e4l-prod/docker                   │
                               │  • docker-compose pull                       │
                               │  • docker-compose up -d                      │
                               │                                              │
-                              │  Result: Backend running at :8085            │
+                              │  Result: Backend running at :8084            │
                               └──────────────────────────────────────────────┘
 
-                              CRITICAL: Production deployment blocked if E2E tests fail
+                              CRITICAL: Production image build & deployment blocked if E2E tests fail
 
     E2E Test Coverage:
     1. Get Questionnaire - Validates API + DB connection
-    2. Create Session - Tests POST functionality & DB writes
-    3. Get Response Count - Tests DB query functionality
-    4. Get Seminars - Tests core endpoint availability
-    5. CORS Configuration - Validates frontend integration
+    2. Get Response Count - Tests DB query functionality
+    3. Get Seminars - Tests core endpoint availability
+    4. CORS Configuration - Validates frontend integration
 
 
 ================================================================================

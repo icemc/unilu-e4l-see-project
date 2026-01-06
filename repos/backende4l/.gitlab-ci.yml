@@ -8,6 +8,7 @@ stages:
 - docker build
 - deploy staging
 - acceptance-tests
+- docker build production
 - deploy production
 
 before_script:
@@ -118,20 +119,15 @@ docker:
     - job: integration_tests
   script:
   - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-  - |
-    if [ "$CI_COMMIT_BRANCH" == "dev" ]; then
-      docker build --pull -t "$STAGE_CI_REGISTRY_IMAGE:latest" .
-      docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
-    elif [ "$CI_COMMIT_BRANCH" == "main" ]; then
-      docker build --pull -t "$PROD_CI_REGISTRY_IMAGE:release" .
-      docker push "$PROD_CI_REGISTRY_IMAGE:release"
-    fi
+  # Build and push staging image only
+  - docker build --pull -t "$STAGE_CI_REGISTRY_IMAGE:latest" .
+  - docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
 
 
 deploy_staging:
   stage: deploy staging
   image: alpine:3.20
-  tags: [juno]
+  tags: [e4l-server]
   needs: ["docker"]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -199,7 +195,7 @@ deploy_staging:
 e2e_acceptance_tests:
   stage: acceptance-tests
   image: docker:29.0.1
-  tags: [juno]
+  tags: [e4l-server]
   needs: ["deploy_staging"]
   rules:
     - if: $CI_COMMIT_BRANCH == 'main'
@@ -231,11 +227,27 @@ e2e_acceptance_tests:
     # Cleanup: remove Newman container
     - docker rm -f "newman-$CI_JOB_ID" || true
 
+docker_build_production:
+  stage: docker build production
+  image: docker:latest
+  tags: [e4l-server]
+  needs:
+    - job: build
+      artifacts: true
+    - job: e2e_acceptance_tests
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'main'
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    # Build and push production image ONLY if E2E tests passed
+    - docker build --pull -t "$PROD_CI_REGISTRY_IMAGE:release" .
+    - docker push "$PROD_CI_REGISTRY_IMAGE:release"
+
 deploy_production:
   stage: deploy production
   image: alpine:3.20
-  tags: [juno]
-  needs: ["e2e_acceptance_tests"]
+  tags: [e4l-server]
+  needs: ["docker_build_production"]
   rules:
     - if: $CI_COMMIT_BRANCH == 'main'
 
