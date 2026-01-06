@@ -7,6 +7,7 @@ stages:
 - test
 - docker build
 - deploy staging
+- acceptance-tests
 - deploy production
 
 before_script:
@@ -54,7 +55,7 @@ build:
       - build/libs/*.jar
     expire_in: 1 hour
 
-test:
+unit_test:
   rules:
   - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   - if: $CI_COMMIT_BRANCH == 'dev'
@@ -79,7 +80,7 @@ test:
     expire_in: 1 week
 
 integration_tests:
-  needs: ["test"]
+  needs: ["unit_test"]
   rules:
   - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   - if: $CI_COMMIT_BRANCH == 'dev'
@@ -194,11 +195,46 @@ deploy_staging:
   environment:
     name: staging
 
+e2e_acceptance_tests:
+  stage: acceptance-tests
+  image: docker:29.0.1
+  tags: [juno]
+  needs: ["deploy_staging"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'main'
+  
+  variables:
+    STAGING_API_URL: "http://192.168.56.11:8084"
+  
+  script:
+    # 1. Update Postman environment to point to staging backend VM
+    - sed -i "s|http://localhost:8084|$STAGING_API_URL|g" tests/postman/staging.environment.json
+    
+    # 2. Wait for backend to be fully ready before testing
+    - echo "Waiting for staging backend to be ready..."
+    - |
+      docker run --rm curlimages/curl:latest \
+        --fail --retry 15 --retry-delay 5 --retry-connrefused \
+        http://192.168.56.11:8084/e4lapi/questionnaire
+    
+    # 3. Create Newman container (not started yet)
+    - docker create --name "newman-$CI_JOB_ID" postman/newman:5-alpine run /etc/newman/e4l-backend-e2e.collection.json -e /etc/newman/staging.environment.json
+    
+    # 4. Copy test files into the container
+    - docker cp "$CI_PROJECT_DIR/tests/postman/." "newman-$CI_JOB_ID:/etc/newman/"
+    
+    # 5. Run the E2E tests
+    - docker start -a "newman-$CI_JOB_ID"
+  
+  after_script:
+    # Cleanup: remove Newman container
+    - docker rm -f "newman-$CI_JOB_ID" || true
+
 deploy_production:
   stage: deploy production
   image: alpine:3.20
   tags: [juno]
-  needs: ["docker"]
+  needs: ["e2e_acceptance_tests"]
   rules:
     - if: $CI_COMMIT_BRANCH == 'main'
 

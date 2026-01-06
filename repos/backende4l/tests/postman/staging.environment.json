@@ -1,0 +1,16 @@
+{
+  "id": "staging-environment",
+  "name": "Staging Environment",
+  "values": [
+    {
+      "key": "API_URL",
+      "value": "http://localhost:8084",
+      "enabled": true
+    },
+    {
+      "key": "ENVIRONMENT",
+      "value": "staging",
+      "enabled": true
+    }
+  ]
+}

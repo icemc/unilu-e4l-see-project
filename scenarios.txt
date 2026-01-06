@@ -15,14 +15,26 @@ Branching Strategy:
 - main branch → Automatically deploys to PRODUCTION (192.168.56.12) AFTER E2E tests pass
 
 Pipeline Structure:
-- Backend:  6 stages (pre-build, build, test, docker_build, deploy_staging, deploy_production)
+- Backend:  7 stages (pre-build, build, unit_test, integration_tests, docker_build, 
+            deploy_staging, acceptance-tests, deploy_production)
 - Frontend: 7 stages (build, unit_tests, integration_tests, docker_build_staging, 
             deploy_staging, acceptance_tests, docker_build_production, deploy_production)
 
 Quality Gates:
-- Backend: JUnit tests must pass before deployment
-- Frontend: Unit tests, integration tests, AND E2E acceptance tests must pass
+- Backend: Unit tests (20 tests) + integration tests (4 tests) must pass before deployment
+- Backend E2E: Newman/Postman tests (5 requests, 15 assertions) gate production
+- Frontend: Unit tests + integration tests + E2E acceptance tests must pass
+- Frontend E2E: Axios + Cheerio tests (5 tests) gate production
 - E2E tests run on staging environment before production deployment
+- Production deployment is BLOCKED if any tests fail
+
+Test Coverage:
+- Backend Unit: 20 JUnit tests
+- Backend Integration: 4 Spring Boot tests (H2 database)
+- Backend E2E: 5 API tests (questionnaire, session, count, seminars, CORS)
+- Frontend Unit: 16 Jest tests (reducers, actions)
+- Frontend Integration: 13 React Testing Library tests (components)
+- Frontend E2E: 5 HTTP tests (health, homepage, content)
 - Production deployment is BLOCKED if any tests fail
 
 Deployment Method:
@@ -228,6 +240,140 @@ Demonstrate that failing tests prevent deployment.
 
 ## Restore
 Fix the test assertion and commit to restore pipeline.
+
+--------------------------------------------------------------------------------
+
+# Scenario 5a: Backend E2E Tests PASS - Production Deployment Succeeds
+
+## Goal
+Demonstrate that passing E2E tests allow production deployment (quality gate).
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- Staging VM is running (192.168.56.11) with backend deployed
+- Production VM is running (192.168.56.12)
+- You have working code on dev branch
+
+## Main Success Scenario
+1. Switch to main branch:
+   ```
+   git checkout main
+   git pull origin main
+   ```
+2. Merge dev branch into main:
+   ```
+   git merge dev
+   ```
+3. Push to main branch:
+   ```
+   git push origin main
+   ```
+4. Go to: http://localhost:8929/testdev/backend/-/pipelines
+5. Watch pipeline execute all stages:
+   - pre-build (green checkmark)
+   - build (green checkmark)
+   - unit_test (green checkmark)
+   - integration_tests (green checkmark)
+   - docker (green checkmark)
+   - deploy_staging (green checkmark) - deploys to staging for E2E
+   - e2e_acceptance_tests (green checkmark) - **CRITICAL QUALITY GATE**
+   - deploy_production (green checkmark) - only runs if E2E pass
+6. Observe E2E acceptance_tests stage shows Newman running 5 tests
+7. Check logs for: "newman run e4l-backend-e2e.collection.json"
+
+## Expected Result
+- All stages pass successfully including E2E tests
+- 5 E2E tests pass with 15 assertions:
+  * Get Questionnaire - validates API + DB connection
+  * Create Session - tests POST & DB writes
+  * Get Response Count - tests DB queries
+  * Get Seminars - tests core endpoint
+  * CORS Configuration - validates frontend integration
+- Production Docker image built ONLY after E2E tests pass
+- Docker image tagged as: minfranco/e4l-backend-prod:release
+- Backend redeployed at http://192.168.56.12:8085
+
+## Verification
+- Visit http://192.168.56.11:8084/e4lapi (staging - updated)
+- Visit http://192.168.56.12:8085/e4lapi (production - deployed)
+- Check pipeline logs for Newman test results
+- SSH to VM: `ssh -i ~/.ssh/devops_prod vagrant@192.168.56.12 -p 2223`
+- Check containers: `docker ps`
+
+## E2E Tests Executed
+The following acceptance tests run automatically against staging:
+- GET /e4lapi/questionnaire - returns questionnaire (validates DB)
+- POST /e4lapi/session - creates session (validates write operations)
+- GET /e4lapi/responses/count - returns count (validates queries)
+- GET /e4lapi/seminars - lists seminars (validates core feature)
+- OPTIONS /e4lapi/questionnaire - CORS preflight (validates frontend integration)
+
+--------------------------------------------------------------------------------
+
+# Scenario 5b: Backend E2E Tests FAIL - Production Deployment Blocked
+
+## Goal
+Demonstrate that failing E2E tests prevent production deployment (quality gate).
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- Staging environment has a broken deployment
+- You are on the main branch
+
+## Main Success Scenario
+1. Introduce a breaking change in backend code that affects API:
+   ```java
+   // Break the questionnaire endpoint in QuestionnaireController.java
+   @GetMapping("/questionnaire")
+   public List<Question> getPoll() {
+       throw new RuntimeException("Simulated API failure");
+   }
+   ```
+2. Commit and push to dev branch first (to get it on staging):
+   ```
+   git add .
+   git commit -m "Simulate API failure for E2E test"
+   git push origin dev
+   ```
+3. Wait for staging deployment to complete
+4. Merge dev to main:
+   ```
+   git checkout main
+   git merge dev
+   git push origin main
+   ```
+5. Go to: http://localhost:8929/testdev/backend/-/pipelines
+6. Watch pipeline execute stages
+7. Observe pipeline fails at "e2e_acceptance_tests" stage (red X)
+8. Verify that "deploy_production" stage NEVER RUNS
+
+## Expected Result
+- Pipeline stops at e2e_acceptance_tests stage
+- E2E tests fail (e.g., "Status code is 200 - expected but got 500")
+- Production Docker image is NOT built
+- Production environment remains UNCHANGED
+- Error message: "Production deployment blocked - E2E tests failed"
+
+## Verification
+- Check E2E test logs for failure details (Newman output)
+- Verify production still serves old working version
+- Visit http://192.168.56.12:8085/e4lapi (should show previous version)
+- Production Docker image tag :release unchanged in Docker Hub
+
+## Restore
+1. Fix the breaking change:
+   ```java
+   @GetMapping("/questionnaire")
+   public List<Question> getPoll() {
+       List<Question> questions = questionnaireService.getDefaultQuestionnaire().getQuestions();
+       // ... rest of working code
+       return questions;
+   }
+   ```
+2. Commit and push to dev
+3. Test on staging
+4. Merge to main again
+5. E2E tests should pass this time
 
 
 ================================================================================

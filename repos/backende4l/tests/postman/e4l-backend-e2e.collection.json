@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "E4L Backend E2E Tests",
+    "description": "End-to-end tests for E4L backend API - validates key functionality",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Get Questionnaire (Health Check)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response is JSON array\", function () {",
+              "    pm.response.to.be.json;",
+              "    const data = pm.response.json();",
+              "    pm.expect(Array.isArray(data)).to.be.true;",
+              "});",
+              "",
+              "pm.test(\"Questionnaire has questions\", function () {",
+              "    const questions = pm.response.json();",
+              "    pm.expect(questions.length).to.be.above(0);",
+              "});",
+              "",
+              "pm.test(\"Response time is acceptable\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{API_URL}}/e4lapi/questionnaire",
+          "host": ["{{API_URL}}"],
+          "path": ["e4lapi", "questionnaire"]
+        },
+        "description": "Retrieves questionnaire - verifies API is running and database connection works"
+      }
+    },
+    {
+      "name": "2. Create Session",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Returns session ID\", function () {",
+              "    const sessionId = pm.response.text();",
+              "    pm.expect(sessionId).to.not.be.empty;",
+              "    pm.expect(sessionId.length).to.be.above(10);",
+              "    pm.environment.set('sessionId', sessionId);",
+              "});",
+              "",
+              "pm.test(\"Response time is acceptable\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"answers\": [],\n  \"iskid\": false\n}"
+        },
+        "url": {
+          "raw": "{{API_URL}}/e4lapi/session",
+          "host": ["{{API_URL}}"],
+          "path": ["e4lapi", "session"]
+        },
+        "description": "Creates a new session - tests POST functionality and database write"
+      }
+    },
+    {
+      "name": "3. Get Response Count",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Returns numeric count\", function () {",
+              "    const count = parseInt(pm.response.text());",
+              "    pm.expect(count).to.be.a('number');",
+              "    pm.expect(count).to.be.at.least(0);",
+              "});",
+              "",
+              "pm.test(\"Response time is acceptable\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{API_URL}}/e4lapi/responses/count?kid=false",
+          "host": ["{{API_URL}}"],
+          "path": ["e4lapi", "responses", "count"],
+          "query": [
+            {
+              "key": "kid",
+              "value": "false"
+            }
+          ]
+        },
+        "description": "Gets response count - validates database read functionality"
+      }
+    },
+    {
+      "name": "4. Get Seminars List",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response is JSON array\", function () {",
+              "    pm.response.to.be.json;",
+              "    const data = pm.response.json();",
+              "    pm.expect(Array.isArray(data)).to.be.true;",
+              "});",
+              "",
+              "pm.test(\"Response time is acceptable\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{API_URL}}/e4lapi/seminars",
+          "host": ["{{API_URL}}"],
+          "path": ["e4lapi", "seminars"]
+        },
+        "description": "Lists seminars - tests another core endpoint"
+      }
+    },
+    {
+      "name": "5. API CORS Configuration",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"CORS preflight handled\", function () {",
+              "    pm.expect([200, 204]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test(\"Response time is fast\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "OPTIONS",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "http://192.168.56.11:8082",
+            "type": "text"
+          },
+          {
+            "key": "Access-Control-Request-Method",
+            "value": "GET",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{API_URL}}/e4lapi/questionnaire",
+          "host": ["{{API_URL}}"],
+          "path": ["e4lapi", "questionnaire"]
+        },
+        "description": "Verifies CORS configuration for frontend integration"
+      }
+    }
+  ]
+}
