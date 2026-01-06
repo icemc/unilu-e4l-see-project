@@ -139,7 +139,18 @@ deploy_staging:
          cd '$STAGE_PATH_CLEAN/docker';
          echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
          export BACKEND_IMAGE='${STAGE_CI_REGISTRY_IMAGE}';
-         docker compose -f docker-compose.db.yml up -d --remove-orphans;
+         export MYSQL_USERNAME='e4l_user';
+         export MYSQL_PASSWORD='e4l_secure_password';
+         export DUMP_DIR='/opt/dumps';
+         
+         # Check if database is already running (from setup_envs.sh)
+         if ! docker ps | grep -q e4l-db; then
+           echo 'Starting database container...';
+           docker compose -f docker-compose.db.yml up -d --remove-orphans;
+         else
+           echo 'Database container already running, skipping...';
+         fi
+         
          docker compose -f docker-compose.backend.staging.yml pull;
          docker compose -f docker-compose.backend.staging.yml up -d --remove-orphans;
          docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep -E 'e4l-backend-staging|db' || true"
@@ -193,7 +204,18 @@ deploy_production:
          cd '$PROD_PATH_CLEAN/docker';
          echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
          export BACKEND_IMAGE='${PROD_CI_REGISTRY_IMAGE}';
-         docker compose -f docker-compose.db.yml up -d --remove-orphans;
+         export MYSQL_USERNAME='e4l_user';
+         export MYSQL_PASSWORD='e4l_secure_password';
+         export DUMP_DIR='/opt/dumps';
+         
+         # Check if database is already running (from setup_envs.sh)
+         if ! docker ps | grep -q e4l-db; then
+           echo 'Starting database container...';
+           docker compose -f docker-compose.db.yml up -d --remove-orphans;
+         else
+           echo 'Database container already running, skipping...';
+         fi
+         
          docker compose -f docker-compose.backend.prod.yml pull;
          docker compose -f docker-compose.backend.prod.yml up -d --remove-orphans;
          docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep -E 'e4l-backend-prod|db' || true"

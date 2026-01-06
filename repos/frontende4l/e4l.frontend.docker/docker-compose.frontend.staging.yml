@@ -7,6 +7,9 @@ services:
     restart: unless-stopped
     ports:
       - "8082:80"
+    environment:
+      - PUBLIC_PATH=/
+      - API_URL=/API_URL
     networks:
       - e4l-db-net
 

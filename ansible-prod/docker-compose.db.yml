@@ -15,9 +15,9 @@ services:
       - MYSQL_ROOT_HOST=%
       - TZ=Europe/Luxembourg
     networks:
-      - e4l-db-prod-net
+      - e4l-db-net
 
 networks:
-  e4l-db-prod-net:
+  e4l-db-net:
     external: false
-    name: e4l-db-prod-net
+    name: e4l-db-net
