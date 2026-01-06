@@ -20,10 +20,10 @@ docker_build_frontend:
     # Build + push based on branch
     - |
       if [ "$CI_COMMIT_BRANCH" == "dev" ]; then
-        docker build -t "$STAGE_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
+        docker build --build-arg API_URL=/API_URL --build-arg PUBLIC_PATH=/ -t "$STAGE_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
         docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
       elif [ "$CI_COMMIT_BRANCH" == "main" ]; then
-        docker build -t "$PROD_CI_REGISTRY_IMAGE:release" -f e4l.frontend.docker/web/Dockerfile .
+        docker build --build-arg API_URL=/API_URL --build-arg PUBLIC_PATH=/ -t "$PROD_CI_REGISTRY_IMAGE:release" -f e4l.frontend.docker/web/Dockerfile .
         docker push "$PROD_CI_REGISTRY_IMAGE:release"
       fi
 
