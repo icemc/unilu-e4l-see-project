@@ -91,8 +91,6 @@ docker:
       docker build --pull -t "$PROD_CI_REGISTRY_IMAGE:release" .
       docker push "$PROD_CI_REGISTRY_IMAGE:release"
     fi
-    - build
-    - .gradle
 
 
 deploy_staging:
@@ -142,8 +140,9 @@ deploy_staging:
          cd '$STAGE_PATH_CLEAN/docker';
          echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
          export BACKEND_IMAGE='${STAGE_CI_REGISTRY_IMAGE}';
-         export MYSQL_USERNAME='e4l_user';
-         export MYSQL_PASSWORD='e4l_secure_password';
+         export MYSQL_USERNAME='e4l';
+         export MYSQL_PASSWORD='e4lpassword';
+         export MYSQL_ROOT_PASSWORD='rootpassword';
          export DUMP_DIR='/opt/dumps';
          
          # Check if database is already running (from setup_envs.sh)
@@ -207,8 +206,9 @@ deploy_production:
          cd '$PROD_PATH_CLEAN/docker';
          echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
          export BACKEND_IMAGE='${PROD_CI_REGISTRY_IMAGE}';
-         export MYSQL_USERNAME='e4l_user';
-         export MYSQL_PASSWORD='e4l_secure_password';
+         export MYSQL_USERNAME='e4l';
+         export MYSQL_PASSWORD='e4lpassword';
+         export MYSQL_ROOT_PASSWORD='rootpassword';
          export DUMP_DIR='/opt/dumps';
          
          # Check if database is already running (from setup_envs.sh)

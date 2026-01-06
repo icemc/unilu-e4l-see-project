@@ -9,7 +9,7 @@ services:
       - /opt/e4l-mysql:/var/lib/mysql
       - ${DUMP_DIR}:${DUMP_DIR}
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=e4l
       - MYSQL_USER=${MYSQL_USERNAME}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}

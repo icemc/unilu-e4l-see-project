@@ -143,8 +143,9 @@ echo "Environment setup completed successfully!"
 set -e
 
 # Set database environment variables
-export MYSQL_USERNAME=e4l_user
-export MYSQL_PASSWORD=e4l_secure_password
+export MYSQL_USERNAME=e4l
+export MYSQL_PASSWORD=e4lpassword
+export MYSQL_ROOT_PASSWORD=rootpassword
 export DUMP_DIR=/opt/dumps
 
 # Navigate to working directory
