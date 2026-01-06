@@ -165,11 +165,19 @@ RUNNER_VOLUMES=$(docker volume ls -q | grep -E "^runner-|runner_config|_runner_c
 if [ -n "$RUNNER_VOLUMES" ]; then
     RUNNER_COUNT=$(echo "$RUNNER_VOLUMES" | wc -l)
     echo "Found $RUNNER_COUNT runner volumes to remove..."
-    if echo "$RUNNER_VOLUMES" | xargs docker volume rm 2>/dev/null; then
-        echo "✓ All runner volumes removed."
-    else
-        echo "⚠️  WARNING: Failed to remove some runner volumes. Continuing..."
-        FAILED_STEPS+=("Step 5: Remove Runner Volumes")
+    REMOVED_COUNT=0
+    FAILED_COUNT=0
+    for vol in $RUNNER_VOLUMES; do
+        if docker volume rm -f "$vol" 2>/dev/null; then
+            ((REMOVED_COUNT++))
+        else
+            ((FAILED_COUNT++))
+        fi
+    done
+    echo "✓ Removed $REMOVED_COUNT runner volumes."
+    if [ $FAILED_COUNT -gt 0 ]; then
+        echo "⚠️  WARNING: Failed to remove $FAILED_COUNT runner volumes (may be in use). Continuing..."
+        FAILED_STEPS+=("Step 5: Remove Runner Volumes ($FAILED_COUNT failed)")
     fi
 else
     echo "No runner volumes found."
@@ -182,16 +190,24 @@ fi
 
 # Remove GitLab bind mount directories (prevents duplicate token error)
 echo "Removing GitLab data directories..."
-GITLAB_HOME_DIR="${GITLAB_HOME:-$HOME/gitlab}"
-if [ -d "$GITLAB_HOME_DIR" ]; then
-    if sudo rm -rf "$GITLAB_HOME_DIR" 2>/dev/null || rm -rf "$GITLAB_HOME_DIR" 2>/dev/null; then
-        echo "✓ Removed GitLab data directory: $GITLAB_HOME_DIR"
-    else
-        echo "⚠️  WARNING: Failed to remove GitLab data directory. Continuing..."
-        FAILED_STEPS+=("Step 5: Remove GitLab Data Directory")
+# Check multiple possible locations for GitLab data
+GITLAB_LOCATIONS=("${GITLAB_HOME}" "$HOME/gitlab" "./gitlab")
+GITLAB_REMOVED=false
+
+for location in "${GITLAB_LOCATIONS[@]}"; do
+    if [ -n "$location" ] && [ -d "$location" ]; then
+        if sudo rm -rf "$location" 2>/dev/null || rm -rf "$location" 2>/dev/null; then
+            echo "✓ Removed GitLab data directory: $location"
+            GITLAB_REMOVED=true
+        else
+            echo "⚠️  WARNING: Failed to remove GitLab data directory: $location. Continuing..."
+            FAILED_STEPS+=("Step 5: Remove GitLab Data Directory")
+        fi
     fi
-else
-    echo "GitLab data directory not found: $GITLAB_HOME_DIR"
+done
+
+if [ "$GITLAB_REMOVED" = false ]; then
+    echo "No GitLab data directories found in common locations."
 fi
 
 # Remove GitLab runner config directory
