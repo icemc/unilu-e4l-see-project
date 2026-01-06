@@ -23,3 +23,4 @@ services:
 networks:
   e4l-db-net:
     external: true
+    name: e4l-db-net
