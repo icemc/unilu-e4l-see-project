@@ -1,12 +1,84 @@
 stages:
-  - docker_build
+  - build
+  - test
+  - docker_build_staging
   - deploy_staging
+  - acceptance_tests
+  - docker_build_production
   - deploy_production
 
-docker_build_frontend:
-  stage: docker_build
+.before_npm: &before_npm
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+
+build:
+  stage: build
+  image: node:16
+  tags: [juno]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  <<: *before_npm
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - e4l.frontend.docker/web/dist/
+      - node_modules/
+    expire_in: 1 hour
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm/
+
+# Unit tests
+unit_tests:
+  stage: test
+  image: node:16
+  tags: [juno]
+  needs: ["build"]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  <<: *before_npm
+  script:
+    - npm run test:unit:ci
+  artifacts:
+    when: always
+    reports:
+      junit: coverage/junit-unit.xml
+    paths:
+      - coverage/
+    expire_in: 1 week
+
+# Integration tests
+integration_tests:
+  stage: test
+  image: node:16
+  tags: [juno]
+  needs: ["unit_tests"]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  <<: *before_npm
+  script:
+    - npm run test:integration:ci
+  artifacts:
+    when: always
+    reports:
+      junit: coverage/junit-integration.xml
+    paths:
+      - coverage/
+    expire_in: 1 week
+
+docker_build_staging_frontend:
+  stage: docker_build_staging
   image: docker:24
   tags: [juno]
+  needs: ["integration_tests"]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == "dev"'
@@ -17,24 +89,19 @@ docker_build_frontend:
     # Docker Hub login (CI_REGISTRY=docker.io)
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
-    # Build + push based on branch
-    - |
-      if [ "$CI_COMMIT_BRANCH" == "dev" ]; then
-        docker build --build-arg API_URL=/API_URL --build-arg PUBLIC_PATH=/ -t "$STAGE_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
-        docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
-      elif [ "$CI_COMMIT_BRANCH" == "main" ]; then
-        docker build --build-arg API_URL=/API_URL --build-arg PUBLIC_PATH=/ -t "$PROD_CI_REGISTRY_IMAGE:release" -f e4l.frontend.docker/web/Dockerfile .
-        docker push "$PROD_CI_REGISTRY_IMAGE:release"
-      fi
+    # Build + push staging image
+    - docker build --build-arg API_URL=/API_URL --build-arg PUBLIC_PATH=/ -t "$STAGE_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
+    - docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
 
 deploy_staging_frontend:
   stage: deploy_staging
   image: alpine:3.20
   tags: [juno]
-  needs: ["docker_build_frontend"]
+  needs: ["docker_build_staging_frontend"]
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
 
   before_script:
     - apk add --no-cache openssh-client
@@ -74,11 +141,89 @@ deploy_staging_frontend:
          docker compose -f docker-compose.frontend.staging.yml up -d --remove-orphans;
          docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep e4l-frontend-staging || true"
 
+acceptance_tests:
+  stage: acceptance_tests
+  image: docker:29.0.1
+  tags: [juno]
+  needs: ["deploy_staging_frontend"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  
+  variables:
+    E2E_BASE_URL: "http://192.168.56.11:8082"
+  
+  before_script:
+    # Wait for staging frontend to be ready
+    - apk add --no-cache curl
+    - |
+      echo "Waiting for staging frontend to be ready..."
+      for i in $(seq 1 30); do
+        if curl -f http://192.168.56.11:8082 > /dev/null 2>&1; then
+          echo "✓ Staging frontend is ready at http://192.168.56.11:8082"
+          break
+        fi
+        echo "Waiting... ($i/30)"
+        sleep 2
+      done
+  
+  script:
+    - |
+      set -euo pipefail
+      
+      # Create container for E2E tests with Chromium
+      docker create --name e2e-tests \
+        -e E2E_BASE_URL="$E2E_BASE_URL" \
+        -e CI=true \
+        -w /app \
+        node:22-bullseye \
+        sh -c "apt-get update && \
+               apt-get install -y chromium fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release wget xdg-utils && \
+               npm ci && \
+               npm run test:e2e:ci"
+      
+      # Copy project files into container
+      docker cp . e2e-tests:/app
+      
+      # Start container and run tests
+      docker start -a e2e-tests
+      
+      # Copy test results back
+      docker cp e2e-tests:/app/coverage/junit-e2e.xml ./coverage/ || true
+  
+  artifacts:
+    when: always
+    reports:
+      junit: coverage/junit-e2e.xml
+    paths:
+      - coverage/
+    expire_in: 1 week
+  
+  after_script:
+    # Cleanup
+    - docker rm -f e2e-tests || true
+
+docker_build_production_frontend:
+  stage: docker_build_production
+  image: docker:24
+  tags: [juno]
+  needs: ["acceptance_tests"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - docker version
+
+    # Docker Hub login (CI_REGISTRY=docker.io)
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
+    # Build + push production image only after E2E tests pass
+    - docker build --build-arg API_URL=/API_URL --build-arg PUBLIC_PATH=/ -t "$PROD_CI_REGISTRY_IMAGE:release" -f e4l.frontend.docker/web/Dockerfile .
+    - docker push "$PROD_CI_REGISTRY_IMAGE:release"
+
 deploy_production_frontend:
   stage: deploy_production
   image: alpine:3.20
   tags: [juno]
-  needs: ["docker_build_frontend"]
+  needs: ["docker_build_production_frontend"]
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
 

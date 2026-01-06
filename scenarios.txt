@@ -12,16 +12,31 @@ DEVOPS STRATEGY OVERVIEW
 
 Branching Strategy:
 - dev branch  → Automatically deploys to STAGING (192.168.56.11)
-- main branch → Automatically deploys to PRODUCTION (192.168.56.12)
+- main branch → Automatically deploys to PRODUCTION (192.168.56.12) AFTER E2E tests pass
 
 Pipeline Structure:
 - Backend:  6 stages (pre-build, build, test, docker_build, deploy_staging, deploy_production)
-- Frontend: 3 stages (docker_build, deploy_staging, deploy_production)
+- Frontend: 7 stages (build, unit_tests, integration_tests, docker_build_staging, 
+            deploy_staging, acceptance_tests, docker_build_production, deploy_production)
+
+Quality Gates:
+- Backend: JUnit tests must pass before deployment
+- Frontend: Unit tests, integration tests, AND E2E acceptance tests must pass
+- E2E tests run on staging environment before production deployment
+- Production deployment is BLOCKED if any tests fail
 
 Deployment Method:
 - Docker images pushed to Docker Hub (docker.io/minfranco)
 - SSH deployment to Vagrant VMs
 - docker-compose pull and up commands executed on target VMs
+
+Code Freeze Strategy:
+- Develop continuously on dev branch (auto-deploys to staging)
+- When ready for production: CODE FREEZE on dev branch
+- Create merge request: dev → main
+- Merge triggers E2E tests on staging environment
+- If E2E tests pass: Production image built and deployed
+- If E2E tests fail: Production deployment blocked
 
 
 ================================================================================
@@ -219,10 +234,10 @@ Fix the test assertion and commit to restore pipeline.
 FRONTEND PIPELINE SCENARIOS
 ================================================================================
 
-# Scenario 6: Frontend Docker Build and Deploy - PASSING
+# Scenario 6: Frontend Build and Test - PASSING
 
 ## Goal
-Verify that frontend builds successfully and deploys to staging.
+Verify that frontend builds successfully, all tests pass, and deploys to staging.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
@@ -241,18 +256,23 @@ Verify that frontend builds successfully and deploys to staging.
 3. Go to: http://localhost:8929/testdev/frontend/-/pipelines
 4. Click on the latest pipeline
 5. Observe stages execute in order:
-   - docker_build (green checkmark) - Docker image built and pushed
+   - build (green checkmark) - npm ci & webpack build
+   - unit_tests (green checkmark) - Jest unit tests (reducers, actions)
+   - integration_tests (green checkmark) - React Testing Library tests
+   - docker_build_staging (green checkmark) - Docker image built and pushed
    - deploy_staging (green checkmark) - Deployed to 192.168.56.11
 
 ## Expected Result
 - All stages pass successfully
+- Test reports generated: junit-unit.xml, junit-integration.xml
 - Docker image pushed as: minfranco/e4l-frontend-stage:latest
-- Frontend running at http://localhost:8881
+- Frontend running at http://192.168.56.11:8082
 
 ## Verification
-- Visit http://localhost:8881 to see frontend application
+- Visit http://192.168.56.11:8082 to see frontend application
+- Check pipeline artifacts for test coverage reports
 - SSH to staging VM: `ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11 -p 2222`
-- Check containers: `docker ps` (should see e4l-frontend container)
+- Check containers: `docker ps` (should see e4l-frontend-staging container)
 
 --------------------------------------------------------------------------------
 
@@ -325,14 +345,16 @@ Demonstrate automatic deployment to staging environment when pushing to dev bran
 
 --------------------------------------------------------------------------------
 
-# Scenario 9: Frontend Deployment to Production (main branch)
+# Scenario 9: Frontend Deployment to Production with E2E Gating (main branch)
 
 ## Goal
-Demonstrate automatic deployment to production environment when pushing to main branch.
+Demonstrate automatic deployment to production environment when pushing to main branch,
+with E2E acceptance tests acting as a quality gate.
 
 ## Pre-conditions
 - GitLab is up and running at http://localhost:8929
 - Production VM is running (192.168.56.12)
+- Staging VM is running (192.168.56.11) with frontend deployed
 - Frontend repository has tested code on dev branch
 - You have working code on dev branch
 
@@ -351,25 +373,138 @@ Demonstrate automatic deployment to production environment when pushing to main 
    git push origin main
    ```
 4. Go to: http://localhost:8929/testdev/frontend/-/pipelines
-5. Watch pipeline execute all stages
-6. Observe "deploy_production" stage executes (green checkmark)
-7. Note that "deploy_staging" stage is skipped (only runs on dev branch)
+5. Watch pipeline execute all stages:
+   - build (green checkmark)
+   - unit_tests (green checkmark)
+   - integration_tests (green checkmark)
+   - docker_build_staging (green checkmark)
+   - deploy_staging (green checkmark) - Deploys to staging first
+   - acceptance_tests (green checkmark) - **CRITICAL GATE** E2E tests on staging
+   - docker_build_production (green checkmark) - Only runs if E2E pass
+   - deploy_production (green checkmark) - Final deployment
+6. Observe E2E acceptance_tests stage shows Puppeteer tests running
+7. Check logs for: "E2E tests will run against: http://192.168.56.11:8082"
 
 ## Expected Result
-- Pipeline completes successfully
-- deploy_production stage shows SSH connection to 192.168.56.12
-- Frontend redeployed at http://localhost:8882
-- Docker image tagged as: minfranco/e4l-frontend-prod:latest
+- All stages pass successfully including E2E tests
+- E2E test report generated: junit-e2e.xml
+- Production Docker image built ONLY after E2E tests pass
+- Docker image tagged as: minfranco/e4l-frontend-prod:release
+- Frontend redeployed at http://192.168.56.12:8082
 
 ## Verification
-- Visit http://localhost:8882 to verify production deployment
-- Check pipeline logs for: "Deploying to PRODUCTION (192.168.56.12)"
+- Visit http://192.168.56.11:8082 (staging - updated)
+- Visit http://192.168.56.12:8082 (production - deployed)
+- Check pipeline logs for E2E test results (16 tests: homepage, navigation, health)
+- Check pipeline artifacts for junit-e2e.xml
 - SSH to VM: `ssh -i ~/.ssh/devops_prod vagrant@192.168.56.12 -p 2223`
 - Check containers: `docker ps`
 
+## E2E Tests Executed
+The following acceptance tests run automatically:
+- Homepage loading with 200/304 status
+- Page title and body element presence
+- No critical JavaScript errors
+- Navigation bar and interactive links
+- Footer content with current year
+- CSS and JavaScript resource loading
+- Application health checks
+
 --------------------------------------------------------------------------------
 
-# Scenario 10: Frontend Build Error in Webpack
+# Scenario 9a: E2E Tests FAIL - Production Deployment Blocked
+
+## Goal
+Demonstrate that failing E2E tests prevent production deployment (quality gate).
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- Staging environment has a broken deployment
+- You are on the main branch
+
+## Main Success Scenario
+1. Introduce a breaking change in frontend code:
+   ```javascript
+   // In src/js/index.js or similar
+   // Break navigation by removing a key element
+   document.getElementById('root').innerHTML = '';  // Clears entire app
+   ```
+2. Commit and push to dev branch first (to get it on staging):
+   ```
+   git add .
+   git commit -m "Breaking change for E2E demo"
+   git push origin dev
+   ```
+3. Wait for staging deployment to complete
+4. Merge dev to main:
+   ```
+   git checkout main
+   git merge dev
+   git push origin main
+   ```
+5. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+6. Watch pipeline execute stages
+7. Observe pipeline fails at "acceptance_tests" stage (red X)
+8. Verify that "docker_build_production" and "deploy_production" stages NEVER RUN
+
+## Expected Result
+- Pipeline stops at acceptance_tests stage
+- E2E tests fail (e.g., "Navigation bar not found", "Interactive elements missing")
+- Production Docker image is NOT built
+- Production environment remains UNCHANGED
+- Error message: "Production deployment blocked - E2E tests failed"
+
+## Verification
+- Check E2E test logs for failure details
+- Verify production still serves old working version
+- Visit http://192.168.56.12:8082 (should show previous version)
+- Production Docker image tag :release unchanged in Docker Hub
+
+## Restore
+1. Fix the breaking change
+2. Commit and push to dev
+3. Test on staging
+4. Merge to main again
+5. E2E tests should pass this time
+
+--------------------------------------------------------------------------------
+
+# Scenario 10: Frontend Unit Test Failure Prevention
+
+## Goal
+Demonstrate that failing unit tests prevent deployment.
+
+## Pre-conditions
+- GitLab is up and running at http://localhost:8929
+- Frontend repository has test files
+- User is logged in as testdev
+
+## Main Success Scenario
+1. Go to: http://localhost:8929/testdev/frontend
+2. Navigate to src/__tests__/unit/navReducer.test.js
+3. Click "Edit" → "Edit single file"
+4. Modify a test to fail:
+   ```javascript
+   // Change assertion to incorrect value
+   expect(newState.showNavButtons).toBe(false);  // Should be true
+   ```
+5. Commit changes to dev branch
+6. Go to: http://localhost:8929/testdev/frontend/-/pipelines
+7. Observe pipeline fails at "unit_tests" stage (red X)
+8. Verify that integration_tests, docker_build, and deploy stages never run
+
+## Expected Result
+- Pipeline stops at unit_tests stage
+- No deployment occurs
+- Staging environment remains unchanged
+- Test report shows which test failed
+
+## Restore
+Fix the test assertion and commit to restore pipeline.
+
+--------------------------------------------------------------------------------
+
+# Scenario 11: Frontend Build Error in Webpack
 
 ## Goal
 Demonstrate that build errors in webpack prevent deployment.
@@ -390,13 +525,13 @@ Demonstrate that build errors in webpack prevent deployment.
    ```
 5. Commit changes to dev branch
 6. Go to: http://localhost:8929/testdev/frontend/-/pipelines
-7. Observe pipeline fails at "docker_build" stage (red X)
+7. Observe pipeline fails at "build" stage (red X)
 8. View logs to see webpack compilation error
-9. Verify that deploy_staging stage never runs
+9. Verify that all subsequent stages never run
 
 ## Expected Result
-- Pipeline stops at docker_build stage
-- No deployment occurs
+- Pipeline stops at build stage
+- No tests run, no deployment occurs
 - Staging environment remains unchanged
 
 ## Restore
@@ -407,10 +542,11 @@ Fix the syntax error and commit to restore pipeline.
 CROSS-ENVIRONMENT SCENARIOS
 ================================================================================
 
-# Scenario 11: Promote from Staging to Production
+# Scenario 12: Promote from Staging to Production with Code Freeze
 
 ## Goal
-Demonstrate the workflow of testing in staging, then promoting to production.
+Demonstrate the complete workflow: testing in staging, code freeze, E2E validation, 
+then promoting to production.
 
 ## Pre-conditions
 - Both staging and production VMs are running
@@ -418,31 +554,51 @@ Demonstrate the workflow of testing in staging, then promoting to production.
 - GitLab is accessible
 
 ## Main Success Scenario
-1. Develop and test changes locally
-2. Push to dev branch:
+1. **Development Phase**: Develop and test changes locally
+2. **Push to Staging**: Push to dev branch:
    ```
    git push origin dev
    ```
-3. Wait for pipeline to complete
-4. Verify deployment on staging:
-   - Frontend: http://localhost:8881
-   - Backend: http://localhost:8084
-5. Test application functionality on staging
-6. Once satisfied, merge to main:
+3. **Wait for Staging Pipeline**: Pipeline runs build → tests → docker build → deploy staging
+4. **Verify on Staging**: 
+   - Frontend: http://192.168.56.11:8082
+   - Backend: http://192.168.56.11:8084
+5. **Manual Testing**: Test application functionality thoroughly on staging
+6. **CODE FREEZE**: Stop making commits to dev branch when satisfied
+7. **Merge to Main**: Once staging is validated:
    ```
    git checkout main
    git pull origin main
    git merge dev
    git push origin main
    ```
-7. Wait for production pipeline to complete
-8. Verify deployment on production:
-   - Frontend: http://localhost:8882
-   - Backend: http://localhost:8085
+8. **Production Pipeline Starts**:
+   - build → unit_tests → integration_tests → docker_build_staging → deploy_staging
+9. **E2E Acceptance Tests**: Watch acceptance_tests stage run Puppeteer tests on staging
+10. **Production Build**: If E2E pass → docker_build_production stage runs
+11. **Production Deployment**: deploy_production stage deploys to production
+12. **Verify Production**:
+    - Frontend: http://192.168.56.12:8082
+    - Backend: http://192.168.56.12:8085
 
 ## Expected Result
 - Staging environment gets immediate updates from dev branch
-- Production environment only gets updates from main branch
+- CODE FREEZE ensures staging is stable before production promotion
+- E2E tests validate staging before building production image
+- Production environment only gets updates after E2E tests pass
+- Both environments remain isolated
+
+## Verification
+- Compare versions on staging vs production
+- Check Docker images: stage vs prod tags
+- Verify database isolation (e4l_stage vs e4l_prod)
+- Review E2E test results in pipeline artifacts
+
+## Code Freeze Benefits
+- Prevents new changes from entering staging during production promotion
+- Ensures what was tested is exactly what goes to production
+- Provides stable baseline for E2E testing
+- Reduces risk of last-minute changes breaking production
 - Both environments remain isolated
 
 ## Verification
@@ -606,22 +762,32 @@ Verify that staging and production are properly isolated.
 SUMMARY TABLE
 ================================================================================
 
-| #  | Scenario Type         | Branch | Target Env | Outcome  | Key Learning                |
-|----|-----------------------|--------|------------|----------|------------------------------|
-| 1  | Backend Build         | dev    | Staging    | SUCCESS  | Pipeline stages execute      |
-| 2  | Backend Build Failure | dev    | None       | FAILURE  | Build errors block pipeline  |
-| 3  | Backend to Staging    | dev    | Staging    | SUCCESS  | Auto-deploy on dev push      |
-| 4  | Backend to Production | main   | Production | SUCCESS  | Auto-deploy on main push     |
-| 5  | Backend Test Failure  | dev    | None       | FAILURE  | Tests block deployment       |
-| 6  | Frontend Build        | dev    | Staging    | SUCCESS  | Docker build and deploy      |
-| 7  | Frontend Build Fail   | dev    | None       | FAILURE  | Docker errors block pipeline |
-| 8  | Frontend to Staging   | dev    | Staging    | SUCCESS  | Auto-deploy on dev push      |
-| 9  | Frontend to Production| main   | Production | SUCCESS  | Auto-deploy on main push     |
-| 10 | Frontend Webpack Fail | dev    | None       | FAILURE  | Build errors block deploy    |
-| 11 | Staging → Production  | both   | Both       | SUCCESS  | Full promotion workflow      |
-| 12 | Rollback Production   | main   | Production | SUCCESS  | Recovery from bad deploy     |
-| 13 | Debug Failed Deploy   | any    | Any        | DEBUG    | Troubleshooting pipelines    |
-| 14 | Verify VM Deployment  | any    | Any        | VERIFY   | Manual deployment checks     |
-| 15 | Environment Isolation | both   | Both       | VERIFY   | Staging vs production        |
+| #   | Scenario Type          | Branch | Target Env | Outcome  | Key Learning                     |
+|-----|------------------------|--------|------------|----------|----------------------------------|
+| 1   | Backend Build          | dev    | Staging    | SUCCESS  | Pipeline stages execute          |
+| 2   | Backend Build Failure  | dev    | None       | FAILURE  | Build errors block pipeline      |
+| 3   | Backend to Staging     | dev    | Staging    | SUCCESS  | Auto-deploy on dev push          |
+| 4   | Backend to Production  | main   | Production | SUCCESS  | Auto-deploy on main push         |
+| 5   | Backend Test Failure   | dev    | None       | FAILURE  | Tests block deployment           |
+| 6   | Frontend Build & Test  | dev    | Staging    | SUCCESS  | Build + unit + integration tests |
+| 7   | Frontend Build Fail    | dev    | None       | FAILURE  | Docker errors block pipeline     |
+| 8   | Frontend to Staging    | dev    | Staging    | SUCCESS  | Auto-deploy on dev push          |
+| 9   | Frontend to Production | main   | Production | SUCCESS  | E2E tests gate production        |
+| 9a  | E2E Tests Fail         | main   | None       | FAILURE  | E2E failures block production    |
+| 10  | Unit Test Failure      | dev    | None       | FAILURE  | Unit tests block deployment      |
+| 11  | Frontend Webpack Fail  | dev    | None       | FAILURE  | Build errors block deploy        |
+| 12  | Staging → Production   | both   | Both       | SUCCESS  | Code freeze + E2E workflow       |
+| 13  | Rollback Production    | main   | Production | SUCCESS  | Recovery from bad deploy         |
+| 14  | Debug Failed Deploy    | any    | Any        | DEBUG    | Troubleshooting pipelines        |
+| 15  | Verify VM Deployment   | any    | Any        | VERIFY   | Manual deployment checks         |
+| 16  | Environment Isolation  | both   | Both       | VERIFY   | Staging vs production            |
+
+KEY CHANGES IN FRONTEND PIPELINE:
+- Added unit tests (Jest) - Must pass before Docker build
+- Added integration tests (React Testing Library) - Must pass before Docker build
+- Added E2E acceptance tests (Puppeteer) - Run on staging, gate production deployment
+- Staging Docker image built for both dev and main branches
+- Production Docker image built ONLY after E2E tests pass on main branch
+- Code freeze strategy: dev deploys to staging, main triggers E2E then production
 
 ================================================================================

@@ -146,13 +146,28 @@ Backend Pipeline (6 Stages):
                                     • dev  → STAGING (192.168.56.11)
                                     • main → PRODUCTION (192.168.56.12)
 
-Frontend Pipeline (3 Stages):
-    ┌────────────┐    ┌──────────────┐    ┌──────────────┐
-    │DOCKER BUILD│───►│DEPLOY STAGING│    │DEPLOY PROD   │
-    └─────┬──────┘    └──────────────┘    └──────────────┘
-          │                 ▲                     ▲
-    Build & push            │                     │
-    to Docker Hub      dev branch?          main branch?
+Frontend Pipeline (7 Stages with Quality Gates):
+    ┌─────────┐    ┌──────────┐    ┌─────────────┐    ┌─────────────┐    ┌──────────┐
+    │  BUILD  │───►│UNIT TEST │───►│INTEGRATION  │───►│DOCKER BUILD │───►│  DEPLOY  │
+    │         │    │          │    │    TEST     │    │  (STAGING)  │    │ STAGING  │
+    └─────────┘    └──────────┘    └─────────────┘    └─────────────┘    └────┬─────┘
+         │              │                 │                  │                  │
+    npm ci +       Jest tests        React Testing     Build staging      SSH to VM
+    npm build      (reducers/        Library tests     image & push       docker-compose
+                   actions)          (components)      to Docker Hub
+
+                                    Only on main branch:
+                                    ┌─────────────┐    ┌─────────────┐    ┌──────────┐
+                                    │ E2E ACCEPT  │───►│DOCKER BUILD │───►│  DEPLOY  │
+                                    │    TESTS    │    │ (PRODUCTION)│    │   PROD   │
+                                    └─────────────┘    └─────────────┘    └──────────┘
+                                          │                   │                  │
+                                    Puppeteer tests      Build prod         SSH to VM
+                                    on staging env       image ONLY if      docker-compose
+                                    (192.168.56.11       E2E pass
+                                     :8082)
+
+                                    CRITICAL: Production deployment blocked if E2E tests fail
 
 All deployments use SSH to connect to VMs and run docker-compose commands.
                    ┌────┴────┐                                        ▼
@@ -224,16 +239,32 @@ Vagrant Commands:
 The CI/CD pipeline runs automatically based on branch:
 
   dev branch commits:
-    - Automatically build and deploy to STAGING environment
+    - Automatically build, test, and deploy to STAGING environment
+    - Frontend: Build → Unit Tests → Integration Tests → Docker Build → Deploy Staging
     - Images pushed to: minfranco/e4l-backend-stage:latest
                        minfranco/e4l-frontend-stage:latest
     - Deployed to: 192.168.56.11 (e4l-stage VM)
+    - Used for continuous integration and testing
 
-  main branch commits:
-    - Automatically build and deploy to PRODUCTION environment
-    - Images pushed to: minfranco/e4l-backend-prod:latest
-                       minfranco/e4l-frontend-prod:latest
+  main branch commits (with CODE FREEZE and E2E gating):
+    - Automatically build, test, run E2E tests, then deploy to PRODUCTION
+    - Frontend: Build → Unit Tests → Integration Tests → Docker Build (Staging) 
+                → Deploy Staging → E2E Tests (on staging) → Docker Build (Prod) 
+                → Deploy Production
+    - E2E Acceptance Tests: Run Puppeteer tests against staging (http://192.168.56.11:8082)
+    - Production deployment BLOCKED if E2E tests fail
+    - Images pushed to: minfranco/e4l-backend-prod:latest (or :release)
+                       minfranco/e4l-frontend-prod:release
     - Deployed to: 192.168.56.12 (e4l-prod VM)
+    
+  CODE FREEZE STRATEGY:
+    1. Develop and push to dev branch (deploys to staging)
+    2. Test and validate on staging environment
+    3. CODE FREEZE: Stop dev branch commits when ready for production
+    4. Create merge request: dev → main
+    5. Merge triggers E2E tests on staging
+    6. If E2E tests pass → Production image built and deployed
+    7. If E2E tests fail → Production deployment blocked, fix issues, repeat
 VMs and environments:
 
   Stop and destroy both VMs:
@@ -263,6 +294,11 @@ Workflow:
   1. Develop locally on any branch
   2. Push to dev branch → Auto-deploy to staging
   3. Test on staging environment
+  4. CODE FREEZE: Stop committing to dev when satisfied with staging
+  5. Create merge request: dev → main
+  6. Merge to main → E2E tests run on staging
+  7. If E2E pass → Auto-deploy to production
+  8. If E2E fail → Production blocked, fix and retry
   4. Create merge request: dev → main
   5. Merge to main → Auto-deploy to productioneline run
 

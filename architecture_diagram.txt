@@ -216,7 +216,7 @@ BRANCHING STRATEGY:
                      FRONTEND PIPELINE & DEPLOYMENT FLOW
 ================================================================================
 
-    FRONTEND CI/CD PIPELINE (3 Stages)
+    FRONTEND CI/CD PIPELINE (7 Stages with Quality Gates)
     
     ┌─────────────────────────────────────────────────────────────────────────┐
     │   Developer commits to Frontend Repo (dev or main branch)               │
@@ -224,47 +224,123 @@ BRANCHING STRATEGY:
                          │
                          ▼
     ┌─────────────────────────────────────────────────────────────────────────┐
-    │   STAGE 1: DOCKER BUILD                                                 │
+    │   STAGE 1: BUILD                                                        │
+    │   • node:16 image                                                       │
+    │   • npm ci (install dependencies)                                       │
+    │   • npm run build (webpack production build)                            │
+    │   • Artifact: dist/ and node_modules/                                   │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 2: TEST (Unit Tests)                                            │
+    │   • Run unit tests with Jest                                            │
+    │   • Test reducers, actions, utilities                                   │
+    │   • Generate JUnit report: junit-unit.xml                               │
+    │   • Quality gate: Must pass to continue                                 │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 3: TEST (Integration Tests)                                     │
+    │   • Run integration tests with Jest + React Testing Library            │
+    │   • Test React components with Redux/Router                             │
+    │   • Generate JUnit report: junit-integration.xml                        │
+    │   • Quality gate: Must pass to continue                                 │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 4: DOCKER BUILD STAGING                                         │
     │   • Build multi-stage Docker image:                                     │
     │     1. Build stage: npm install & webpack build                         │
     │     2. Runtime stage: Nginx + React production build                    │
-    │   • Tag based on branch:                                                │
-    │     - dev  → minfranco/e4l-frontend-stage:latest                        │
-    │     - main → minfranco/e4l-frontend-prod:latest                         │
+    │   • Tag: minfranco/e4l-frontend-stage:latest                            │
     │   • Push to Docker Hub (docker.io)                                      │
+    │   • Runs for: dev, main, merge requests                                 │
     └────────────────────┬────────────────────────────────────────────────────┘
                          │
-           ┌─────────────┴─────────────┐
-           │                           │
-    dev branch?                  main branch?
-           │                           │
-           ▼                           ▼
-    ┌──────────────────┐      ┌──────────────────┐
-    │  STAGE 2:        │      │  STAGE 3:        │
-    │  DEPLOY STAGING  │      │  DEPLOY PROD     │
-    └──────────────────┘      └──────────────────┘
-           │                           │
-           ▼                           ▼
-    ┌──────────────────┐      ┌──────────────────┐
-    │  SSH to VM:      │      │  SSH to VM:      │
-    │  192.168.56.11   │      │  192.168.56.12   │
-    │  Port: 2222      │      │  Port: 2223      │
-    │  User: vagrant   │      │  User: vagrant   │
-    │  Key: devops_    │      │  Key: devops_    │
-    │       stage      │      │       prod       │
-    │                  │      │                  │
-    │  Commands:       │      │  Commands:       │
-    │  • cd /opt/e4l   │      │  • cd            │
-    │  • docker-compose│      │    /opt/e4l-prod │
-    │    pull          │      │  • docker-compose│
-    │  • docker-compose│      │    pull          │
-    │    up -d         │      │  • docker-compose│
-    │                  │      │    up -d         │
-    │  Result:         │      │                  │
-    │  Frontend running│      │  Result:         │
-    │  at :8881        │      │  Frontend running│
-    └──────────────────┘      │  at :8882        │
-                              └──────────────────┘
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 5: DEPLOY STAGING                                               │
+    │   • SSH to VM: 192.168.56.11:2222 (Key: devops_stage)                   │
+    │   • Commands:                                                           │
+    │     - cd /opt/e4l                                                       │
+    │     - docker-compose pull                                               │
+    │     - docker-compose up -d                                              │
+    │   • Result: Frontend running at :8082                                   │
+    │   • Runs for: dev, main, merge requests                                 │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         │ (Only on main branch)
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 6: ACCEPTANCE TESTS (E2E)                                       │
+    │   • Run E2E tests with Puppeteer against staging                        │
+    │   • E2E_BASE_URL: http://192.168.56.11:8082                             │
+    │   • Tests:                                                              │
+    │     - Homepage loading and navigation                                   │
+    │     - Interactive elements and links                                    │
+    │     - Footer content and year display                                   │
+    │     - CSS/JS resource loading                                           │
+    │     - Application health checks                                         │
+    │   • Generate JUnit report: junit-e2e.xml                                │
+    │   • CRITICAL QUALITY GATE: Production deployment blocked if E2E fails   │
+    │   • Only runs on: main branch                                           │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         │ E2E Tests PASSED ✓
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 7a: DOCKER BUILD PRODUCTION                                     │
+    │   • Build production Docker image (same as staging build)               │
+    │   • Tag: minfranco/e4l-frontend-prod:release                            │
+    │   • Push to Docker Hub (docker.io)                                      │
+    │   • ONLY runs after E2E tests pass                                      │
+    │   • Only runs on: main branch                                           │
+    └────────────────────┬────────────────────────────────────────────────────┘
+                         │
+                         ▼
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │   STAGE 7b: DEPLOY PRODUCTION                                           │
+    │   • SSH to VM: 192.168.56.12:2223 (Key: devops_prod)                    │
+    │   • Commands:                                                           │
+    │     - cd /opt/e4l-prod                                                  │
+    │     - docker-compose pull                                               │
+    │     - docker-compose up -d                                              │
+    │   • Result: Frontend running at :8082                                   │
+    │   • Only runs on: main branch                                           │
+    │   • Depends on: acceptance_tests and docker_build_production            │
+    └─────────────────────────────────────────────────────────────────────────┘
+
+
+    DEPLOYMENT FLOW WITH CODE FREEZE STRATEGY:
+    
+    ┌──────────────────────────────────────────────────────────────────────────┐
+    │  DEV BRANCH WORKFLOW (Continuous Integration to Staging)                 │
+    ├──────────────────────────────────────────────────────────────────────────┤
+    │  1. Developer commits to dev branch                                      │
+    │  2. Build → Unit Tests → Integration Tests                               │
+    │  3. Docker Build (staging image)                                         │
+    │  4. Deploy to Staging (192.168.56.11:8082)                               │
+    │  5. Manual testing and validation on staging                             │
+    │  6. CODE FREEZE: Stop dev branch commits when ready for production       │
+    └──────────────────────────────────────────────────────────────────────────┘
+                                       |
+                                       | Merge dev → main
+                                       ▼
+    ┌──────────────────────────────────────────────────────────────────────────┐
+    │  MAIN BRANCH WORKFLOW (Gated Production Deployment)                      │
+    ├──────────────────────────────────────────────────────────────────────────┤
+    │  1. Merge request: dev → main (after code freeze)                        │
+    │  2. Build → Unit Tests → Integration Tests                               │
+    │  3. Docker Build (staging image) + Deploy to Staging                     │
+    │  4. ** E2E ACCEPTANCE TESTS ** (against staging)                         │
+    │     └─ PASS ✓ → Continue to production                                   │
+    │     └─ FAIL ✗ → BLOCK production, fix issues, repeat                     │
+    │  5. Docker Build (production image) - ONLY if E2E passed                 │
+    │  6. Deploy to Production (192.168.56.12:8082)                            │
+    └──────────────────────────────────────────────────────────────────────────┘
 
 
 ================================================================================

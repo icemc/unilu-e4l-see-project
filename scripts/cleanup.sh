@@ -73,7 +73,7 @@ echo "=== Step 4: Stop GitLab and Runner Containers ==="
 cd "$ROOT_DIR"
 if [ -f "docker-compose.yml" ]; then
     echo "Stopping GitLab CE and Runner containers..."
-    docker-compose down -v
+    docker compose down -v
     echo "GitLab containers stopped and volumes removed."
 else
     echo "docker-compose.yml not found, skipping."
