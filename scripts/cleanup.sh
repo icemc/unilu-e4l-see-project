@@ -120,9 +120,30 @@ fi
 echo ""
 echo "=== Step 4: Stop GitLab and Runner Containers ==="
 cd "$ROOT_DIR"
+
+# Optional: Clear GitLab tokens before stopping (prevents duplicate token error)
+if docker ps | grep -q gitlab; then
+    echo "GitLab container is running. Clearing personal access tokens..."
+    if docker exec -it gitlab gitlab-rails runner -e production "
+u = User.find_by(username: 'root');
+if u
+  n = u.personal_access_tokens.delete_all;
+  puts \"Deleted #{n} root personal access tokens\";
+else
+  puts 'root user not found';
+end
+" 2>/dev/null; then
+        echo "✓ GitLab tokens cleared."
+    else
+        echo "⚠️  WARNING: Failed to clear GitLab tokens. Continuing..."
+    fi
+else
+    echo "GitLab container not running, skipping token cleanup."
+fi
+
 if [ -f "docker-compose.yml" ]; then
     echo "Stopping GitLab CE and Runner containers..."
-    if docker compose down -v 2>/dev/null; then
+    if docker compose down -v --remove-orphans 2>/dev/null; then
         echo "GitLab containers stopped and volumes removed."
     else
         echo "⚠️  WARNING: Failed to stop GitLab containers. Continuing..."
@@ -191,7 +212,8 @@ fi
 # Remove GitLab bind mount directories (prevents duplicate token error)
 echo "Removing GitLab data directories..."
 # Check multiple possible locations for GitLab data
-GITLAB_LOCATIONS=("${GITLAB_HOME}" "$HOME/gitlab" "./gitlab")
+# When $GITLAB_HOME is empty, compose creates /config, /logs, /data at root
+GITLAB_LOCATIONS=("${GITLAB_HOME}" "$HOME/gitlab" "./gitlab" "/config" "/logs" "/data")
 GITLAB_REMOVED=false
 
 for location in "${GITLAB_LOCATIONS[@]}"; do
