@@ -1,10 +1,10 @@
 version: "3.5"
 
 services:
-  e4l-db-prod:
+  e4l-db:
     restart: always
     image: mariadb:10.4.7
-    container_name: e4l-db-prod
+    container_name: e4l-db
     volumes:
       - /opt/e4l-mysql-prod:/var/lib/mysql
       - ${DUMP_DIR}:${DUMP_DIR}
