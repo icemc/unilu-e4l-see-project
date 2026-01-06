@@ -136,23 +136,32 @@ echo ""
 echo "=== Step 5: Clean up Docker Resources ==="
 echo "Removing GitLab-related Docker resources..."
 
+# Get volumes used by gitlab/gitlab-runner containers before removing them
+echo "Checking for GitLab-related volumes..."
+GITLAB_VOLUMES=$(docker inspect gitlab gitlab-runner 2>/dev/null | grep -o '"Source": "[^"]*"' | cut -d'"' -f4 | grep -v "^$" | sort -u 2>/dev/null || true)
+
 # Remove containers if they still exist
 if ! docker rm -f gitlab gitlab-runner 2>/dev/null; then
     echo "⚠️  WARNING: Some containers could not be removed (may not exist). Continuing..."
 fi
 
-# Remove GitLab volumes to prevent token collision on re-setup
-echo "Removing GitLab volumes..."
-GITLAB_VOLUMES=$(docker volume ls -q | grep gitlab 2>/dev/null || true)
+# Remove volumes that were used by GitLab (prevents token collision on re-setup)
 if [ -n "$GITLAB_VOLUMES" ]; then
-    if echo "$GITLAB_VOLUMES" | xargs docker volume rm 2>/dev/null; then
-        echo "✓ GitLab Docker volumes removed."
-    else
-        echo "⚠️  WARNING: Failed to remove some GitLab volumes. Continuing..."
-        FAILED_STEPS+=("Step 5: Remove GitLab Volumes")
-    fi
+    echo "Removing GitLab volumes..."
+    for vol in $GITLAB_VOLUMES; do
+        if docker volume rm "$vol" 2>/dev/null; then
+            echo "✓ Removed volume: $vol"
+        else
+            echo "⚠️  Could not remove volume: $vol (may be bind mount or already removed)"
+        fi
+    done
 else
-    echo "No GitLab volumes found."
+    echo "No GitLab Docker volumes detected (GitLab may use bind mounts instead)."
+fi
+
+# Prune anonymous volumes to clean up any orphaned GitLab data
+if docker volume prune -f 2>/dev/null | grep -q "Total reclaimed space"; then
+    echo "✓ Pruned anonymous volumes."
 fi
 
 # Remove networks
