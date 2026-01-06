@@ -57,6 +57,45 @@ dependencies {
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 }
 
+// Integration test configuration
+sourceSets {
+    integrationTest {
+        java {
+            compileClasspath += main.output + test.output
+            runtimeClasspath += main.output + test.output
+            srcDir file('src/integration-test/java')
+        }
+        resources.srcDir file('src/integration-test/resources')
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+task integrationTest(type: Test) {
+    description = 'Runs integration tests with H2 database.'
+    group = 'verification'
+    
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    
+    shouldRunAfter test
+    
+    reports {
+        html.required = true
+        junitXml.required = true
+    }
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
+check.dependsOn integrationTest
+
 tasks.withType(JavaCompile) {
     options.compilerArgs += ["-Xlint:deprecation", "-Xlint:-options"]
 }
