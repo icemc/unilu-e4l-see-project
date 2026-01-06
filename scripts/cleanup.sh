@@ -213,7 +213,7 @@ fi
 echo "Removing GitLab data directories..."
 # Check multiple possible locations for GitLab data
 # When $GITLAB_HOME is empty, compose creates /config, /logs, /data at root
-GITLAB_LOCATIONS=("${GITLAB_HOME}" "$HOME/gitlab" "./gitlab" "/config" "/logs" "/data")
+GITLAB_LOCATIONS=("${GITLAB_HOME:-}" "$HOME/gitlab" "./gitlab" "/config" "/logs" "/data")
 GITLAB_REMOVED=false
 
 for location in "${GITLAB_LOCATIONS[@]}"; do
