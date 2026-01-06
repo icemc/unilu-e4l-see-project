@@ -142,8 +142,8 @@ if ! docker rm -f gitlab gitlab-runner 2>/dev/null; then
 fi
 
 # Remove network
-if ! docker network rm e4l-db-net 2>/dev/null; then
-    echo "⚠️  WARNING: Network e4l-db-net could not be removed (may not exist). Continuing..."
+if ! docker network rm unilu-e4l-see-project 2>/dev/null; then
+    echo "⚠️  WARNING: Network unilu-e4l-see-project could not be removed (may not exist). Continuing..."
 fi
 
 echo "Docker resources cleanup attempted."
