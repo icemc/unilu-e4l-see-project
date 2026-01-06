@@ -1,10 +1,10 @@
 version: "3.5"
 
 services:
-  e4l-backend-staging:
+  e4l-backend:
     restart: always
     image: ${BACKEND_IMAGE}:latest
-    container_name: e4l-backend-staging
+    container_name: e4l-backend
     ports:
       - "8084:8080"
     environment:

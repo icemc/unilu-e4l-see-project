@@ -1,10 +1,10 @@
 version: "3.5"
 
 services:
-  e4l-backend-prod:
+  e4l-backend:
     restart: always
     image: ${BACKEND_IMAGE}:release
-    container_name: e4l-backend-prod
+    container_name: e4l-backend
     ports:
       - "8084:8080"
     environment:
