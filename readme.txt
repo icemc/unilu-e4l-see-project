@@ -178,9 +178,10 @@ Frontend Pipeline (7 Stages with Quality Gates):
                                     │    TESTS    │    │ (PRODUCTION)│    │   PROD   │
                                     └─────────────┘    └─────────────┘    └──────────┘
                                           │                   │                  │
-                                    Puppeteer tests      Build prod         SSH to VM
-                                    on staging env       image ONLY if      docker-compose
-                                    (192.168.56.11       E2E pass
+                                    Axios+Cheerio        Build prod         SSH to VM
+                                    HTTP tests           image ONLY if      docker-compose
+                                    on staging env       E2E pass
+                                    (192.168.56.11
                                      :8082)
 
                                     CRITICAL: Production deployment blocked if E2E tests fail
@@ -261,7 +262,7 @@ The CI/CD pipeline runs automatically based on branch:
     - Frontend: Build → Unit Tests → Integration Tests → Docker Build (Staging) 
                 → Deploy Staging → E2E Tests (on staging) → Docker Build (Prod) 
                 → Deploy Production
-    - E2E Acceptance Tests: Run Puppeteer tests against staging (http://192.168.56.11:8082)
+    - E2E Acceptance Tests: Run Axios+Cheerio HTTP tests against staging (http://192.168.56.11:8082)
     - Production deployment BLOCKED if E2E tests fail
     - Images pushed to: minfranco/e4l-backend-prod:latest (or :release)
                        minfranco/e4l-frontend-prod:release

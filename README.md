@@ -165,7 +165,7 @@ npm build (reducers/    Library tests      image & push        docker-compose
 Only on main branch:
 E2E ACCEPTANCE TESTS ──► DOCKER BUILD (PROD) ──► DEPLOY PRODUCTION
          │                       │                        │
-   Puppeteer tests         Build prod image          SSH to VM
+   Axios+Cheerio tests     Build prod image          SSH to VM
    on staging env          ONLY if E2E pass          docker-compose
    (192.168.56.11:8082)
 
@@ -239,7 +239,7 @@ After setup completes, visit these URLs:
 - Automatically build, test, **run E2E tests on staging**, then deploy to **PRODUCTION**
 - **E2E Acceptance Tests:** Quality gate before production
   - Backend: Newman/Postman tests (4 tests, 12 assertions)
-  - Frontend: Puppeteer E2E tests
+  - Frontend: Axios+Cheerio HTTP tests (5 tests)
   - Tests run against staging environment (`192.168.56.11`)
 - **⚠️ Production deployment BLOCKED if E2E tests fail**
 - Images pushed to:
@@ -307,7 +307,7 @@ npm run test:unit:ci
 # Integration tests (React Testing Library)
 npm run test:integration:ci
 
-# E2E tests (Puppeteer)
+# E2E tests (Axios + Cheerio HTTP tests)
 E2E_BASE_URL="http://192.168.56.11:8082" npm run test:e2e
 ```
 
@@ -387,4 +387,4 @@ This platform provides:
 
 **Test Coverage:**
 - Backend: 20 unit tests + 4 integration tests + 4 E2E tests
-- Frontend: Jest unit tests + React Testing Library integration tests + Puppeteer E2E tests
+- Frontend: Jest unit tests + React Testing Library integration tests + Axios+Cheerio E2E tests

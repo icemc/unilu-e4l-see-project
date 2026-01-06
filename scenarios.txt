@@ -527,7 +527,7 @@ with E2E acceptance tests acting as a quality gate.
    - acceptance_tests (green checkmark) - **CRITICAL GATE** E2E tests on staging
    - docker_build_production (green checkmark) - Only runs if E2E pass
    - deploy_production (green checkmark) - Final deployment
-6. Observe E2E acceptance_tests stage shows Puppeteer tests running
+6. Observe acceptance_tests stage shows E2E tests running
 7. Check logs for: "E2E tests will run against: http://192.168.56.11:8082"
 
 ## Expected Result
@@ -719,7 +719,7 @@ then promoting to production.
    ```
 8. **Production Pipeline Starts**:
    - build → unit_tests → integration_tests → docker_build_staging → deploy_staging
-9. **E2E Acceptance Tests**: Watch acceptance_tests stage run Puppeteer tests on staging
+9. **E2E Acceptance Tests**: Watch acceptance_tests stage run E2E HTTP tests on staging
 10. **Production Build**: If E2E pass → docker_build_production stage runs
 11. **Production Deployment**: deploy_production stage deploys to production
 12. **Verify Production**:
@@ -930,7 +930,7 @@ SUMMARY TABLE
 KEY CHANGES IN FRONTEND PIPELINE:
 - Added unit tests (Jest) - Must pass before Docker build
 - Added integration tests (React Testing Library) - Must pass before Docker build
-- Added E2E acceptance tests (Puppeteer) - Run on staging, gate production deployment
+- Added E2E acceptance tests (Axios+Cheerio HTTP tests) - Run on staging, gate production deployment
 - Staging Docker image built for both dev and main branches
 - Production Docker image built ONLY after E2E tests pass on main branch
 - Code freeze strategy: dev deploys to staging, main triggers E2E then production
