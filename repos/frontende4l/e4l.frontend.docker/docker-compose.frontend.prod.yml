@@ -3,7 +3,7 @@ version: "3.5"
 services:
   e4l-frontend-prod:
     restart: always
-    image: ${CI_REGISTRY_IMAGE}:release
+    image: ${FRONTEND_IMAGE}:release
     container_name: e4l-frontend-prod
     ports:
       - 8885:80

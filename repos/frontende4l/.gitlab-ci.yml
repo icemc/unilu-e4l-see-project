@@ -23,8 +23,8 @@ docker_build_frontend:
         docker build -t "$STAGE_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
         docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
       elif [ "$CI_COMMIT_BRANCH" == "main" ]; then
-        docker build -t "$PROD_CI_REGISTRY_IMAGE:latest" -f e4l.frontend.docker/web/Dockerfile .
-        docker push "$PROD_CI_REGISTRY_IMAGE:latest"
+        docker build -t "$PROD_CI_REGISTRY_IMAGE:release" -f e4l.frontend.docker/web/Dockerfile .
+        docker push "$PROD_CI_REGISTRY_IMAGE:release"
       fi
 
 deploy_staging_frontend:

@@ -3,7 +3,7 @@ version: "3.5"
 services:
   e4l-backend-staging:
     restart: always
-    image: ${STAGE_CI_REGISTRY_IMAGE}:latest
+    image: ${BACKEND_IMAGE}:latest
     container_name: e4l-backend-staging
     ports:
       - "8084:8080"

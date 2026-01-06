@@ -81,8 +81,8 @@ docker:
       docker build --pull -t "$STAGE_CI_REGISTRY_IMAGE:latest" .
       docker push "$STAGE_CI_REGISTRY_IMAGE:latest"
     elif [ "$CI_COMMIT_BRANCH" == "main" ]; then
-      docker build --pull -t "$PROD_CI_REGISTRY_IMAGE:latest" .
-      docker push "$PROD_CI_REGISTRY_IMAGE:latest"
+      docker build --pull -t "$PROD_CI_REGISTRY_IMAGE:release" .
+      docker push "$PROD_CI_REGISTRY_IMAGE:release"
     fi
   cache:
     key: "$CI_COMMIT_REF_NAME"
@@ -96,6 +96,7 @@ deploy_staging:
   stage: deploy staging
   image: alpine:3.20
   tags: [juno]
+  needs: ["docker"]
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == 'dev'
@@ -112,49 +113,36 @@ deploy_staging:
     - chmod 600 ~/.ssh/id_ed25519
     - printf "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
 
-
   script:
     - |
+      set -euo pipefail
+
       STAGE_HOST_CLEAN="$(printf '%s' "$STAGE_HOST" | tr -d '\r\n')"
       STAGE_USER_CLEAN="$(printf '%s' "$STAGE_USER" | tr -d '\r\n')"
       STAGE_PORT_CLEAN="$(printf '%s' "$STAGE_SSH_PORT" | tr -d '\r\n')"
+      STAGE_PATH_CLEAN="$(printf '%s' "$STAGE_PATH" | tr -d '\r\n')"
 
-      ssh -p "$STAGE_PORT_CLEAN" "$STAGE_USER_CLEAN@$STAGE_HOST_CLEAN" 'bash -s' <<'REMOTE'
-      set -euo pipefail
+      # Create backend directory structure on VM
+      ssh -p "$STAGE_PORT_CLEAN" "$STAGE_USER_CLEAN@$STAGE_HOST_CLEAN" \
+        "mkdir -p '$STAGE_PATH_CLEAN/docker'"
 
-      cd /opt/e4l
+      # Upload docker-compose files to VM
+      scp -P "$STAGE_PORT_CLEAN" docker/docker-compose.db.yml \
+        "$STAGE_USER_CLEAN@$STAGE_HOST_CLEAN:$STAGE_PATH_CLEAN/docker/docker-compose.db.yml"
+      
+      scp -P "$STAGE_PORT_CLEAN" docker/docker-compose.backend.staging.yml \
+        "$STAGE_USER_CLEAN@$STAGE_HOST_CLEAN:$STAGE_PATH_CLEAN/docker/docker-compose.backend.staging.yml"
 
-      # 1) Ensure Docker Compose v2 exists (user-space install, no sudo)
-      if ! docker compose version >/dev/null 2>&1; then
-        echo "Installing docker compose v2 (user-space)..."
-        mkdir -p ~/.docker/cli-plugins
-        ARCH="$(uname -m)"
-        case "$ARCH" in
-          x86_64) ARCH="x86_64" ;;
-          aarch64|arm64) ARCH="aarch64" ;;
-          *) echo "Unsupported arch: $ARCH"; exit 1 ;;
-        esac
-        COMPOSE_VERSION="v2.24.7"
-        curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${ARCH}" \
-          -o ~/.docker/cli-plugins/docker-compose
-        chmod +x ~/.docker/cli-plugins/docker-compose
-      fi
-
-      docker compose version
-
-      # 2) Load envs (compose will read env files anyway, but keep it consistent)
-      set -a
-      source .env
-      source backend.env
-      set +a
-
-      # 3) Deploy (compose v2)
-      docker compose -f docker-compose.db.yml up -d --remove-orphans
-      docker compose -f docker-compose.backend.staging.yml pull
-      docker compose -f docker-compose.backend.staging.yml up -d --remove-orphans
-
-      docker ps
-      REMOTE
+      # Deploy: login to docker.io + pull + up
+      ssh -p "$STAGE_PORT_CLEAN" "$STAGE_USER_CLEAN@$STAGE_HOST_CLEAN" \
+        "set -euo pipefail;
+         cd '$STAGE_PATH_CLEAN/docker';
+         echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
+         export BACKEND_IMAGE='${STAGE_CI_REGISTRY_IMAGE}';
+         docker compose -f docker-compose.db.yml up -d --remove-orphans;
+         docker compose -f docker-compose.backend.staging.yml pull;
+         docker compose -f docker-compose.backend.staging.yml up -d --remove-orphans;
+         docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep -E 'e4l-backend-staging|db' || true"
 
   environment:
     name: staging
@@ -163,16 +151,16 @@ deploy_production:
   stage: deploy production
   image: alpine:3.20
   tags: [juno]
+  needs: ["docker"]
   rules:
     - if: $CI_COMMIT_BRANCH == 'main'
-
 
   before_script:
     - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
     - |
-      printf '%s\n' "$STAGE_SSH_PRIVATE_KEY" \
+      printf '%s\n' "$PROD_SSH_PRIVATE_KEY" \
       | sed 's/\r//g' \
       | sed '/^[[:space:]]*$/d' \
       > ~/.ssh/id_ed25519
@@ -181,46 +169,34 @@ deploy_production:
 
   script:
     - |
+      set -euo pipefail
+
       PROD_HOST_CLEAN="$(printf '%s' "$PROD_HOST" | tr -d '\r\n')"
       PROD_USER_CLEAN="$(printf '%s' "$PROD_USER" | tr -d '\r\n')"
       PROD_PORT_CLEAN="$(printf '%s' "$PROD_SSH_PORT" | tr -d '\r\n')"
+      PROD_PATH_CLEAN="$(printf '%s' "$PROD_PATH" | tr -d '\r\n')"
 
-      ssh -p "$PROD_PORT_CLEAN" "$PROD_USER_CLEAN@$PROD_HOST_CLEAN" 'bash -s' <<'REMOTE'
-      set -euo pipefail
+      # Create backend directory structure on VM
+      ssh -p "$PROD_PORT_CLEAN" "$PROD_USER_CLEAN@$PROD_HOST_CLEAN" \
+        "mkdir -p '$PROD_PATH_CLEAN/docker'"
 
-      cd /opt/e4l-prod
+      # Upload docker-compose files to VM
+      scp -P "$PROD_PORT_CLEAN" docker/docker-compose.db.yml \
+        "$PROD_USER_CLEAN@$PROD_HOST_CLEAN:$PROD_PATH_CLEAN/docker/docker-compose.db.yml"
+      
+      scp -P "$PROD_PORT_CLEAN" docker/docker-compose.backend.prod.yml \
+        "$PROD_USER_CLEAN@$PROD_HOST_CLEAN:$PROD_PATH_CLEAN/docker/docker-compose.backend.prod.yml"
 
-      # 1) Ensure Docker Compose v2 exists (user-space install, no sudo)
-      if ! docker compose version >/dev/null 2>&1; then
-        echo "Installing docker compose v2 (user-space)..."
-        mkdir -p ~/.docker/cli-plugins
-        ARCH="$(uname -m)"
-        case "$ARCH" in
-          x86_64) ARCH="x86_64" ;;
-          aarch64|arm64) ARCH="aarch64" ;;
-          *) echo "Unsupported arch: $ARCH"; exit 1 ;;
-        esac
-        COMPOSE_VERSION="v2.24.7"
-        curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${ARCH}" \
-          -o ~/.docker/cli-plugins/docker-compose
-        chmod +x ~/.docker/cli-plugins/docker-compose
-      fi
-
-      docker compose version
-
-      # 2) Load envs (compose will read env files anyway, but keep it consistent)
-      set -a
-      source .env
-      source backend.env
-      set +a
-
-      # 3) Deploy (compose v2)
-      docker compose -f docker-compose.db.yml up -d --remove-orphans
-      docker compose -f docker-compose.backend.prod.yml pull
-      docker compose -f docker-compose.backend.prod.yml up -d --remove-orphans
-
-      docker ps
-      REMOTE
+      # Deploy: login to docker.io + pull + up
+      ssh -p "$PROD_PORT_CLEAN" "$PROD_USER_CLEAN@$PROD_HOST_CLEAN" \
+        "set -euo pipefail;
+         cd '$PROD_PATH_CLEAN/docker';
+         echo '$CI_REGISTRY_PASSWORD' | docker login -u '$CI_REGISTRY_USER' --password-stdin '$CI_REGISTRY';
+         export BACKEND_IMAGE='${PROD_CI_REGISTRY_IMAGE}';
+         docker compose -f docker-compose.db.yml up -d --remove-orphans;
+         docker compose -f docker-compose.backend.prod.yml pull;
+         docker compose -f docker-compose.backend.prod.yml up -d --remove-orphans;
+         docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}' | grep -E 'e4l-backend-prod|db' || true"
 
   environment:
     name: production

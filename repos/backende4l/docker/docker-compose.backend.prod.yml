@@ -3,7 +3,7 @@ version: "3.5"
 services:
   e4l-backend-prod:
     restart: always
-    image: ${CI_REGISTRY_IMAGE}:release
+    image: ${BACKEND_IMAGE}:release
     container_name: e4l-backend-prod
     ports:
       - "8085:8080"
