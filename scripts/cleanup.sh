@@ -159,9 +159,51 @@ else
     echo "No GitLab Docker volumes detected (GitLab may use bind mounts instead)."
 fi
 
+# Remove all GitLab runner cache volumes
+echo "Removing all GitLab runner volumes..."
+RUNNER_VOLUMES=$(docker volume ls -q | grep -E "^runner-|runner_config|_runner_config" 2>/dev/null || true)
+if [ -n "$RUNNER_VOLUMES" ]; then
+    RUNNER_COUNT=$(echo "$RUNNER_VOLUMES" | wc -l)
+    echo "Found $RUNNER_COUNT runner volumes to remove..."
+    if echo "$RUNNER_VOLUMES" | xargs docker volume rm 2>/dev/null; then
+        echo "✓ All runner volumes removed."
+    else
+        echo "⚠️  WARNING: Failed to remove some runner volumes. Continuing..."
+        FAILED_STEPS+=("Step 5: Remove Runner Volumes")
+    fi
+else
+    echo "No runner volumes found."
+fi
+
 # Prune anonymous volumes to clean up any orphaned GitLab data
 if docker volume prune -f 2>/dev/null | grep -q "Total reclaimed space"; then
     echo "✓ Pruned anonymous volumes."
+fi
+
+# Remove GitLab bind mount directories (prevents duplicate token error)
+echo "Removing GitLab data directories..."
+GITLAB_HOME_DIR="${GITLAB_HOME:-$HOME/gitlab}"
+if [ -d "$GITLAB_HOME_DIR" ]; then
+    if sudo rm -rf "$GITLAB_HOME_DIR" 2>/dev/null || rm -rf "$GITLAB_HOME_DIR" 2>/dev/null; then
+        echo "✓ Removed GitLab data directory: $GITLAB_HOME_DIR"
+    else
+        echo "⚠️  WARNING: Failed to remove GitLab data directory. Continuing..."
+        FAILED_STEPS+=("Step 5: Remove GitLab Data Directory")
+    fi
+else
+    echo "GitLab data directory not found: $GITLAB_HOME_DIR"
+fi
+
+# Remove GitLab runner config directory
+if [ -d "./runner-config" ]; then
+    if rm -rf ./runner-config 2>/dev/null; then
+        echo "✓ Removed runner config directory: ./runner-config"
+    else
+        echo "⚠️  WARNING: Failed to remove runner config directory. Continuing..."
+        FAILED_STEPS+=("Step 5: Remove Runner Config")
+    fi
+else
+    echo "Runner config directory not found: ./runner-config"
 fi
 
 # Remove networks
@@ -187,27 +229,7 @@ else
 fi
 
 echo ""
-echo "=== Step 7: Optional - Remove GitLab Data Directory ==="
-echo "WARNING: This will delete the GitLab data directory from your home folder."
-echo "NOTE: GitLab Docker volumes were already removed in Step 5."
-read -p "Remove GitLab data directory ($HOME/gitlab)? (y/N): " rm_gitlab_data
-if [[ ${rm_gitlab_data:-N} =~ ^[yY](es)?$ ]]; then
-    if [ -d "$HOME/gitlab" ]; then
-        if sudo rm -rf "$HOME/gitlab" 2>/dev/null; then
-            echo "GitLab data removed from $HOME/gitlab"
-        else
-            echo "⚠️  WARNING: Failed to remove GitLab data directory. Continuing..."
-            FAILED_STEPS+=("Step 7: Remove GitLab Data Directory")
-        fi
-    else
-        echo "No GitLab data directory found at $HOME/gitlab"
-    fi
-else
-    echo "GitLab data directory preserved."
-fi
-
-echo ""
-echo "=== Step 8: Clean up Git Repositories ==="
+echo "=== Step 7: Clean up Git Repositories ==="
 read -p "Clean git repositories in repos/ folder (removes .git, keeps source code)? (y/N): " clean_repos
 if [[ ${clean_repos:-N} =~ ^[yY](es)?$ ]]; then
     REPOS_CLEANED=false
