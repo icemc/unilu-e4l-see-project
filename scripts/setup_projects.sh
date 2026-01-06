@@ -77,9 +77,20 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
      --form "key=STAGE_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-backend-stage" > /dev/null
 
-curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+echo "Adding backend STAGE_SSH_PRIVATE_KEY..."
+curl --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     --header "Content-Type: application/json" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=STAGE_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY_STAGE" --form "masked=true" > /dev/null
+     --data @- <<EOF
+{
+  "key": "STAGE_SSH_PRIVATE_KEY",
+  "value": $(cat ~/.ssh/devops_stage | jq -Rs .),
+  "variable_type": "env_var",
+  "protected": false,
+  "masked": false,
+  "raw": false
+}
+EOF
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
@@ -102,9 +113,20 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
      --form "key=PROD_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-backend-prod" > /dev/null
 
-curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+echo "Adding backend PROD_SSH_PRIVATE_KEY..."
+curl --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     --header "Content-Type: application/json" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
-     --form "key=PROD_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY_PROD" --form "masked=true" > /dev/null
+     --data @- <<EOF
+{
+  "key": "PROD_SSH_PRIVATE_KEY",
+  "value": $(cat ~/.ssh/devops_prod | jq -Rs .),
+  "variable_type": "env_var",
+  "protected": false,
+  "masked": false,
+  "raw": false
+}
+EOF
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Fbackend/variables" \
@@ -142,9 +164,20 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
      --form "key=STAGE_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-frontend-stage" > /dev/null
 
-curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+echo "Adding frontend STAGE_SSH_PRIVATE_KEY..."
+curl --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     --header "Content-Type: application/json" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
-     --form "key=STAGE_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY_STAGE" --form "masked=true" > /dev/null
+     --data @- <<EOF
+{
+  "key": "STAGE_SSH_PRIVATE_KEY",
+  "value": $(cat ~/.ssh/devops_stage | jq -Rs .),
+  "variable_type": "env_var",
+  "protected": false,
+  "masked": false,
+  "raw": false
+}
+EOF
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
@@ -167,9 +200,20 @@ curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
      --form "key=PROD_CI_REGISTRY_IMAGE" --form "value=minfranco/e4l-frontend-prod" > /dev/null
 
-curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+echo "Adding frontend PROD_SSH_PRIVATE_KEY..."
+curl --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
+     --header "Content-Type: application/json" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \
-     --form "key=PROD_SSH_PRIVATE_KEY" --form "value=$SSH_PRIVATE_KEY_PROD" --form "masked=true" > /dev/null
+     --data @- <<EOF
+{
+  "key": "PROD_SSH_PRIVATE_KEY",
+  "value": $(cat ~/.ssh/devops_prod | jq -Rs .),
+  "variable_type": "env_var",
+  "protected": false,
+  "masked": false,
+  "raw": false
+}
+EOF
 
 curl --silent --request POST --header "PRIVATE-TOKEN: $ROOT_TOKEN" \
      "$GITLAB_URL/api/v4/projects/$USER_USERNAME%2Ffrontend/variables" \

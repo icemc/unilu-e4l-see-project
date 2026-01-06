@@ -52,14 +52,20 @@
     - name: Authorize devops SSH key for CI/CD access
       shell: |
         mkdir -p /home/vagrant/.ssh
-        if [ -f "/vagrant/devops_stage_key.pub" ]; then
-          cat "/vagrant/devops_stage_key.pub" >> /home/vagrant/.ssh/authorized_keys
-        fi
+        touch /home/vagrant/.ssh/authorized_keys
         chmod 700 /home/vagrant/.ssh
         chmod 600 /home/vagrant/.ssh/authorized_keys
         chown -R vagrant:vagrant /home/vagrant/.ssh
-      args:
-        creates: /home/vagrant/.ssh/authorized_keys
+        if [ -f "/vagrant/devops_stage_key.pub" ]; then
+          # Only add if not already present
+          KEY_CONTENT=$(cat /vagrant/devops_stage_key.pub)
+          if ! grep -qF "$KEY_CONTENT" /home/vagrant/.ssh/authorized_keys; then
+            cat /vagrant/devops_stage_key.pub >> /home/vagrant/.ssh/authorized_keys
+            echo "SSH key added to authorized_keys"
+          else
+            echo "SSH key already in authorized_keys"
+          fi
+        fi
       become: true
 
     - name: Create DB persistent volume dir

@@ -101,13 +101,17 @@ deploy_staging:
     - if: $CI_COMMIT_BRANCH == 'dev'
 
   before_script:
-    - apk add --no-cache openssh-client bash coreutils curl
+    - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    # key iz GitLab variable (multiline) -> strip CR + dodaj newline
-    - printf '%s\n' "$STAGE_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+    - |
+      printf '%s\n' "$STAGE_SSH_PRIVATE_KEY" \
+      | sed 's/\r//g' \
+      | sed '/^[[:space:]]*$/d' \
+      > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - printf "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+
 
   script:
     - |
@@ -162,12 +166,16 @@ deploy_production:
   rules:
     - if: $CI_COMMIT_BRANCH == 'main'
 
+
   before_script:
-    - apk add --no-cache openssh-client bash coreutils curl
+    - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-    # key iz GitLab variable (multiline) -> strip CR + dodaj newline
-    - printf '%s\n' "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+    - |
+      printf '%s\n' "$STAGE_SSH_PRIVATE_KEY" \
+      | sed 's/\r//g' \
+      | sed '/^[[:space:]]*$/d' \
+      > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
     - printf "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
 
