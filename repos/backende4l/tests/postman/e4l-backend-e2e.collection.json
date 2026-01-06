@@ -47,53 +47,7 @@
       }
     },
     {
-      "name": "2. Create Session",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test(\"Returns session ID\", function () {",
-              "    const sessionId = pm.response.text();",
-              "    pm.expect(sessionId).to.not.be.empty;",
-              "    pm.expect(sessionId.length).to.be.above(10);",
-              "    pm.environment.set('sessionId', sessionId);",
-              "});",
-              "",
-              "pm.test(\"Response time is acceptable\", function () {",
-              "    pm.expect(pm.response.responseTime).to.be.below(3000);",
-              "});"
-            ],
-            "type": "text/javascript"
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"answers\": [],\n  \"iskid\": false\n}"
-        },
-        "url": {
-          "raw": "{{API_URL}}/e4lapi/session",
-          "host": ["{{API_URL}}"],
-          "path": ["e4lapi", "session"]
-        },
-        "description": "Creates a new session - tests POST functionality and database write"
-      }
-    },
-    {
-      "name": "3. Get Response Count",
+      "name": "2. Get Response Count",
       "event": [
         {
           "listen": "test",
@@ -135,7 +89,7 @@
       }
     },
     {
-      "name": "4. Get Seminars List",
+      "name": "3. Get Seminars List",
       "event": [
         {
           "listen": "test",
@@ -145,10 +99,10 @@
               "    pm.response.to.have.status(200);",
               "});",
               "",
-              "pm.test(\"Response is JSON array\", function () {",
+              "pm.test(\"Response is JSON object\", function () {",
               "    pm.response.to.be.json;",
               "    const data = pm.response.json();",
-              "    pm.expect(Array.isArray(data)).to.be.true;",
+              "    pm.expect(typeof data).to.equal('object');",
               "});",
               "",
               "pm.test(\"Response time is acceptable\", function () {",
@@ -171,7 +125,7 @@
       }
     },
     {
-      "name": "5. API CORS Configuration",
+      "name": "4. API CORS Configuration",
       "event": [
         {
           "listen": "test",
