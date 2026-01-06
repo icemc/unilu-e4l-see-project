@@ -60,11 +60,11 @@ Verify that backend builds successfully and tests pass in the CI/CD pipeline.
 ## Expected Result
 - All stages pass successfully
 - Docker image pushed as: minfranco/e4l-backend-stage:latest
-- Backend running at http://localhost:8084
+- Backend running at http://192.168.56.11:8084
 
 ## Verification
-- Visit http://localhost:8084 to see backend API
-- SSH to staging VM: `ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11 -p 2222`
+- Visit http://192.168.56.11:8084/e4lapi to see backend API
+- SSH to staging VM: `ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11`
 - Check containers: `docker ps` (should see e4l-backend container)
 
 --------------------------------------------------------------------------------
@@ -129,10 +129,10 @@ Demonstrate automatic deployment to staging environment when pushing to dev bran
 ## Expected Result
 - Pipeline completes successfully
 - deploy_staging stage shows SSH connection to 192.168.56.11
-- Backend redeployed at http://localhost:8084
+- Backend redeployed at http://192.168.56.11:8084
 
 ## Verification
-- Visit http://localhost:8084 to verify new version
+- Visit http://192.168.56.11:8084/e4lapi to verify new version
 - Check pipeline logs for: "Deploying to STAGING (192.168.56.11)"
 - SSH to VM and check: `docker logs e4l-backend`
 

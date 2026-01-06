@@ -62,6 +62,30 @@ Docker Hub Account:
   Default registry: docker.io/minfranco
   Update CI/CD variables if using a different account.
 
+PORT CONFIGURATION:
+  Frontend (both envs):   8082 (host) → 80 (container)
+  Backend (both envs):    8084 (host) → 8080 (container)
+  MariaDB (internal):     3306 (container only - not exposed)
+  
+  Note: Ports are unified across staging and production since each
+        environment runs on a separate VM (no conflicts).
+
+DATABASE CREDENTIALS:
+  Database Name:          e4l
+  Username:               e4l  
+  Password:               e4lpassword
+  Root Password:          rootpassword
+  Driver:                 org.mariadb.jdbc.Driver
+
+CONTAINER NAMING:
+  Database (both envs):   e4l-db
+  Backend (both envs):    e4l-backend
+  Frontend Staging:       e4l-frontend-staging
+  Frontend Production:    e4l-frontend-prod
+  
+  Note: Same names used in both environments since they run on
+        separate VMs. This simplifies configuration and deployment.
+
 
 ARCHITECTURE - THREE ENVIRONMENTS
 ──────────────────────────────────
@@ -91,20 +115,21 @@ ARCHITECTURE - THREE ENVIRONMENTS
 │  ┌──────────────────────────────┐  ┌──────────────────────────────┐     │
 │  │ STAGING VM (e4l-stage)       │  │ PRODUCTION VM (e4l-prod)     │     │
 │  │ IP: 192.168.56.11            │  │ IP: 192.168.56.12            │     │
-│  │ SSH Port: 2222               │  │ SSH Port: 2223               │     │
+│  │ SSH Port: 22                 │  │ SSH Port: 22                 │     │
 │  │ Working Dir: /opt/e4l        │  │ Working Dir: /opt/e4l-prod   │     │
 │  │                              │  │                              │     │
 │  │  ┌────────────────────────┐  │  │  ┌────────────────────────┐  │     │
-│  │  │ Frontend (Nginx) :8881 │  │  │  │ Frontend (Nginx) :8882 │  │     │
+│  │  │ Frontend (Nginx) :8082 │  │  │  │ Frontend (Nginx) :8082 │  │     │
 │  │  └───────────┬────────────┘  │  │  └───────────┬────────────┘  │     │
 │  │              ▼               │  │              ▼               │     │
 │  │  ┌────────────────────────┐  │  │  ┌────────────────────────┐  │     │
-│  │  │ Backend (Spring) :8084 │  │  │  │ Backend (Spring) :8085 │  │     │
+│  │  │ Backend (Spring) :8084 │  │  │  │ Backend (Spring) :8084 │  │     │
 │  │  └───────────┬────────────┘  │  │  └───────────┬────────────┘  │     │
 │  │              ▼               │  │              ▼               │     │
 │  │  ┌────────────────────────┐  │  │  ┌────────────────────────┐  │     │
-│  │  │ MariaDB :3307          │  │  │  │ MariaDB :3308          │  │     │
-│  │  │ DB: e4l_stage          │  │  │  │ DB: e4l_prod           │  │     │
+│  │  │ MariaDB :3306          │  │  │  │ MariaDB :3306          │  │     │
+│  │  │ DB: e4l                │  │  │  │ DB: e4l                │  │     │
+│  │  │ Container: e4l-db      │  │  │  │ Container: e4l-db      │  │     │
 │  │  └────────────────────────┘  │  │  └────────────────────────┘  │     │
 │  │                              │  │                              │     │
 │  │  Deployed from: dev branch   │  │  Deployed from: main branch  │     │
