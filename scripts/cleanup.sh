@@ -141,9 +141,27 @@ if ! docker rm -f gitlab gitlab-runner 2>/dev/null; then
     echo "⚠️  WARNING: Some containers could not be removed (may not exist). Continuing..."
 fi
 
-# Remove network
-if ! docker network rm unilu-e4l-see-project 2>/dev/null; then
-    echo "⚠️  WARNING: Network unilu-e4l-see-project could not be removed (may not exist). Continuing..."
+# Remove GitLab volumes to prevent token collision on re-setup
+echo "Removing GitLab volumes..."
+GITLAB_VOLUMES=$(docker volume ls -q | grep gitlab 2>/dev/null || true)
+if [ -n "$GITLAB_VOLUMES" ]; then
+    if echo "$GITLAB_VOLUMES" | xargs docker volume rm 2>/dev/null; then
+        echo "✓ GitLab Docker volumes removed."
+    else
+        echo "⚠️  WARNING: Failed to remove some GitLab volumes. Continuing..."
+        FAILED_STEPS+=("Step 5: Remove GitLab Volumes")
+    fi
+else
+    echo "No GitLab volumes found."
+fi
+
+# Remove networks
+if ! docker network rm unilu-e4l-see-project_devops-net 2>/dev/null; then
+    echo "⚠️  WARNING: Network unilu-e4l-see-project_devops-net could not be removed (may not exist). Continuing..."
+fi
+
+if ! docker network rm e4l-db-net 2>/dev/null; then
+    echo "⚠️  WARNING: Network e4l-db-net could not be removed (may not exist). Continuing..."
 fi
 
 echo "Docker resources cleanup attempted."
@@ -160,34 +178,23 @@ else
 fi
 
 echo ""
-echo "=== Step 7: Optional - Remove GitLab Data ==="
-echo "WARNING: This will delete all GitLab projects, users, and configuration."
-read -p "Remove all GitLab data? (y/N): " rm_gitlab_data
+echo "=== Step 7: Optional - Remove GitLab Data Directory ==="
+echo "WARNING: This will delete the GitLab data directory from your home folder."
+echo "NOTE: GitLab Docker volumes were already removed in Step 5."
+read -p "Remove GitLab data directory ($HOME/gitlab)? (y/N): " rm_gitlab_data
 if [[ ${rm_gitlab_data:-N} =~ ^[yY](es)?$ ]]; then
-    GITLAB_DATA_REMOVED=false
     if [ -d "$HOME/gitlab" ]; then
         if sudo rm -rf "$HOME/gitlab" 2>/dev/null; then
             echo "GitLab data removed from $HOME/gitlab"
-            GITLAB_DATA_REMOVED=true
         else
             echo "⚠️  WARNING: Failed to remove GitLab data directory. Continuing..."
             FAILED_STEPS+=("Step 7: Remove GitLab Data Directory")
         fi
-    fi
-    if docker volume ls | grep -q gitlab; then
-        if docker volume rm $(docker volume ls -q | grep gitlab) 2>/dev/null; then
-            echo "GitLab Docker volumes removed."
-            GITLAB_DATA_REMOVED=true
-        else
-            echo "⚠️  WARNING: Failed to remove some GitLab volumes. Continuing..."
-            FAILED_STEPS+=("Step 7: Remove GitLab Volumes")
-        fi
-    fi
-    if [ "$GITLAB_DATA_REMOVED" = false ]; then
-        echo "No GitLab data found to remove."
+    else
+        echo "No GitLab data directory found at $HOME/gitlab"
     fi
 else
-    echo "GitLab data preserved."
+    echo "GitLab data directory preserved."
 fi
 
 echo ""
