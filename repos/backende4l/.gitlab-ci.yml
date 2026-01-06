@@ -49,6 +49,10 @@ build:
     paths:
     - build
     - .gradle
+  artifacts:
+    paths:
+      - build/libs/*.jar
+    expire_in: 1 hour
 
 test:
   rules:
@@ -74,6 +78,9 @@ docker:
   image: docker:latest
   stage: docker build
   tags: [e4l-server]
+  needs:
+    - job: build
+      artifacts: true
   script:
   - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
   - |
@@ -84,10 +91,6 @@ docker:
       docker build --pull -t "$PROD_CI_REGISTRY_IMAGE:release" .
       docker push "$PROD_CI_REGISTRY_IMAGE:release"
     fi
-  cache:
-    key: "$CI_COMMIT_REF_NAME"
-    policy: pull
-    paths:
     - build
     - .gradle
 

@@ -1,3 +1,3 @@
-FROM openjdk:21-ea-slim
+FROM eclipse-temurin:21-jdk
 COPY build/libs/e4l-server.jar app.jar
 ENTRYPOINT ["java", "-jar", "/app.jar"]
