@@ -61,7 +61,7 @@ BRANCHING STRATEGY:
 │  │   │  │   Backend   │  │  Frontend   │  │  Docker Hub         │      │     │  │
 │  │   │  │    Repo     │  │    Repo     │  │  (docker.io)        │      │     │  │
 │  │   │  │  dev/main   │  │  dev/main   │  │  minfranco/*        │      │     │  │
-│  │   │  └──────────────┘  └─────────────┘  └─────────────────────┘      │     │  │
+│  │   │  └─────────────┘  └─────────────┘  └─────────────────────┘      │     │  │
 │  │   │                                                                 │     │  │
 │  │   │  ┌─────────────────────────────────────────────────────────┐    │     │  │
 │  │   │  │          GitLab Runner (Docker socket)                  │    │     │  │
@@ -69,7 +69,7 @@ BRANCHING STRATEGY:
 │  │   │  │          Executes CI/CD pipelines for both repos        │    │     │  │
 │  │   │  └─────────────────────────────────────────────────────────┘    │     │  │
 │  │   │                                                                 │     │  │
-│  │   │          See separate diagrams below for pipeline details      │     │  │
+│  │   │          See separate diagrams below for pipeline details       │     │  │
 │  │   └─────────────────────────────────────────────────────────────────┘     │  │
 │  └───────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
@@ -79,7 +79,7 @@ BRANCHING STRATEGY:
 │  │  ┌────────────────────────────────────┐  ┌────────────────────────────┐   │  │
 │  │  │   STAGING VM (e4l-stage)           │  │  PRODUCTION VM (e4l-prod)  │   │  │
 │  │  │   IP: 192.168.56.11                │  │  IP: 192.168.56.12         │   │  │
-│  │  │   SSH Port: 2222                   │  │  SSH Port: 2223            │   │  │
+│  │  │   SSH Port: 22                     │  │  SSH Port: 22              │   │  │
 │  │  │   Working Dir: /opt/e4l            │  │  Working Dir: /opt/e4l-prod│   │  │
 │  │  │                                    │  │                            │   │  │
 │  │  │   Purpose: Integration Testing,    │  │  Purpose: Live Application,│   │  │
@@ -282,7 +282,7 @@ BRANCHING STRATEGY:
                          ▼
     ┌─────────────────────────────────────────────────────────────────────────┐
     │   STAGE 3: TEST (Integration Tests)                                     │
-    │   • Run integration tests with Jest + React Testing Library            │
+    │   • Run integration tests with Jest + React Testing Library             │
     │   • Test React components with Redux/Router                             │
     │   • Generate JUnit report: junit-integration.xml                        │
     │   • Quality gate: Must pass to continue                                 │

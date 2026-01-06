@@ -6,11 +6,11 @@ Complete CI/CD platform for E4L (Education for Life) application with staging an
 
 ```
 scripts/                      Automation scripts for full setup
+  ├── setup.sh                Master setup script (runs all below)
   ├── setup_envs.sh           Provision staging and production VMs
   ├── setup_projects.sh       Create GitLab projects and CI/CD variables
   ├── register_runner.sh      Register CI/CD runners for projects
   ├── setup_gitlab.sh         Setup GitLab runner container
-  ├── push_repos.sh           Push source code to GitLab
   └── cleanup.sh              Tear down VMs and environments
 
 repos/                        Application source code
@@ -193,19 +193,12 @@ Run these commands in sequence from the project root:
 
 # 4. Register GitLab runners (~30 seconds)
 ./scripts/register_runner.sh
-
-# 5. Push source code to GitLab and trigger pipelines (~2 minutes)
-./scripts/push_repos.sh
 ```
 
-**Or chain them together:**
+**Or run the master setup script that executes all steps:**
 
 ```bash
-./scripts/setup_envs.sh && \
-./scripts/setup_gitlab.sh && \
-./scripts/setup_projects.sh && \
-./scripts/register_runner.sh && \
-./scripts/push_repos.sh
+./scripts/setup.sh
 ```
 
 ## 🔍 Verify Setup

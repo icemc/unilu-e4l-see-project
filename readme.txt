@@ -8,11 +8,11 @@ ASSET COMPOSITION
 This project contains:
 
   scripts/                      Automation scripts for full setup
+    ├── setup.sh                Master setup script (runs all below)
     ├── setup_envs.sh           Provision staging and production VMs
     ├── setup_projects.sh       Create GitLab projects and CI/CD variables
     ├── register_runner.sh      Register CI/CD runners for projects
     ├── setup_gitlab.sh         Setup GitLab runner container
-    ├── push_repos.sh           Push source code to GitLab
     └── cleanup.sh              Tear down VMs and environments
 
   repos/                        Application source code
@@ -234,17 +234,11 @@ Run these commands in sequence from the project root (PowerShell/Bash):
      
      Time: ~30 seconds
 
-  5. scripts/push_repos.sh
-                      http://localhost:3307  (MariaDB staging)
+VERIFICATION
+------------
+After setup completes, visit these URLs:
 
-  Production App:     http://localhost:8882  (frontend)
-                      http://localhost:8085  (backend API)
-                      http://localhost:3308  (MariaDB production)
-
-  Docker Hub:         https://hub.docker.com/u/minfranco
-                      (Registry for Docker images)
-
-SSH Access to VMs:
+  GitLab & Projects:
   Staging VM:         ssh -i ~/.ssh/devops_stage vagrant@192.168.56.11 -p 2222
   Production VM:      ssh -i ~/.ssh/devops_prod vagrant@192.168.56.12 -p 2223
 
