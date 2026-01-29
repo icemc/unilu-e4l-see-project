@@ -15,6 +15,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.iml
+.metals/
 
 # Env files
 # **/.env
