@@ -48,14 +48,12 @@ Software:
   - Windows 10/11 or Linux
   - VirtualBox 6.1+
   - Vagrant 2.2+
-  - Docker Desktop (for GitLab Runner)
+  - Docker Desktop / Docker Engine
   - Git v2.25+
   - SSH client (OpenSSH)
-  - GitLab CE (pre-installed at localhost:8929)
-
-GitLab Setup (REQUIRED):
-  GitLab CE must be running at http://localhost:8929
-  Default credentials: testdev / vx6Yo1Mnmn4q7D4Q
+  - curl
+  - GitLab CE (will be installed by setup script)
+  - GitLab Runner (will be installed by setup script)
 
 Docker Hub Account:
   You need a Docker Hub account for pushing images.
@@ -191,11 +189,22 @@ All deployments use SSH to connect to VMs and run docker-compose commands.
                    │         │                                  ┌──────────┐
               U
 ----------------------------
+UBUNTU/KVM COMPATIBILITY FIX (Ubuntu Users Only):
+If you're running Ubuntu with KVM installed, you need to unload KVM kernel
+modules before using VirtualBox:
+
+For AMD processors:
+  sudo rmmod kvm_amd
+  sudo rmmod kvm
+
+For Intel processors:
+  sudo rmmod kvm_intel
+  sudo rmmod kvm
+
+Note: Run the appropriate commands based on your CPU type before proceeding.
+
 Prerequisites:
-  - GitLab CE running at http://localhost:8929
-  - User 'testdev' created with password 'vx6Yo1Mnmn4q7D4Q'
-  - Docker Desktop running
-  - VirtualBox and Vagrant installed
+  - All software requirements installed (VirtualBox, Vagrant, Docker, Git, SSH, curl)
 
 Run these commands in sequence from the project root (PowerShell/Bash):
 

@@ -389,7 +389,35 @@ rm ~/.ssh/devops_prod ~/.ssh/devops_prod.pub
 - **Test Scenarios:** See `scenarios.txt` for comprehensive test scenarios
 - **Backend API Docs:** Available at staging/prod backend at `/swagger-ui.html`
 
-## 📝 Summary
+## � Future Improvements
+
+### 1. Fine-Grained Container Tagging Strategy
+Currently, images use simple tags like `latest` and `release`. Future improvements include:
+- **Commit-based tags:** Tag images with Git commit SHA (e.g., `minfranco/e4l-backend:abc1234`)
+- **Semantic versioning:** Tag production releases with version numbers (e.g., `v1.0.0`, `v1.0.1`)
+- **Multi-tag strategy:** Push multiple tags simultaneously (e.g., `latest`, `v1.0.0`, `commit-abc1234`)
+- **Immutable tags:** Use commit SHAs for traceability and rollback capabilities
+- **Benefits:** Better version tracking, easier rollbacks, improved audit trail, simplified debugging
+
+### 2. Monitoring and Observability Stack
+Add comprehensive monitoring and logging infrastructure:
+- **Prometheus:** Metrics collection from application containers and VMs
+- **Grafana:** Real-time dashboards for application health, resource usage, and performance
+- **Loki/ELK Stack:** Centralized logging aggregation from all services
+- **Alert Manager:** Automated alerts for critical issues (service down, high error rates, resource exhaustion)
+- **Health checks:** Automated endpoint monitoring with uptime tracking
+- **Benefits:** Proactive issue detection, performance insights, faster troubleshooting, SLA monitoring
+
+### 3. Automated Rollback Mechanisms
+Implement safety nets for failed deployments:
+- **Health check validation:** Verify service health after deployment (HTTP endpoints, database connectivity)
+- **Smoke tests:** Run lightweight tests post-deployment to validate core functionality
+- **Auto-rollback triggers:** Automatically revert to previous version if health checks fail
+- **Docker image retention:** Keep last N successful images for quick rollback
+- **Deployment strategies:** Implement blue-green or canary deployments for zero-downtime updates
+- **Benefits:** Reduced downtime, faster recovery from bad deployments, improved reliability
+
+## �📝 Summary
 
 This platform provides:
 - ✅ Automated CI/CD pipelines with GitLab
