@@ -41,14 +41,12 @@ ansible-prod/                 Ansible configuration for production VM
 - Windows 10/11 or Linux
 - VirtualBox 6.1+
 - Vagrant 2.2+
-- Docker Desktop (for GitLab Runner)
+- Docker Desktop / Docker Engine
 - Git v2.25+
 - SSH client (OpenSSH)
-- GitLab CE (pre-installed at localhost:8929)
-
-### GitLab Setup (REQUIRED)
-- GitLab CE must be running at `http://localhost:8929`
-- Default credentials: `testdev` / `vx6Yo1Mnmn4q7D4Q`
+- curl
+- GitLab CE (will be installed by setup script)
+- GitLab Runner (will be installed by setup script)
 
 ### Docker Hub Account
 - You need a Docker Hub account for pushing images
@@ -174,8 +172,26 @@ E2E ACCEPTANCE TESTS ──► DOCKER BUILD (PROD) ──► DEPLOY PRODUCTION
 
 ## 🚀 Setup Instructions
 
+### Ubuntu/KVM Compatibility Fix (Ubuntu Users Only)
+
+If you're running Ubuntu with KVM installed, you need to unload KVM kernel modules before using VirtualBox:
+
+**For AMD processors:**
+```bash
+sudo rmmod kvm_amd
+sudo rmmod kvm
+```
+
+**For Intel processors:**
+```bash
+sudo rmmod kvm_intel
+sudo rmmod kvm
+```
+
+**Note:** Run the appropriate commands based on your CPU type before proceeding with the setup.
+
 ### Prerequisites Check
-Ensure GitLab CE is running at `http://localhost:8929` with user `testdev` created (password: `vx6Yo1Mnmn4q7D4Q`).
+Ensure all software requirements are installed (VirtualBox, Vagrant, Docker, Git, SSH client, curl).
 
 ### Step-by-Step Setup
 
