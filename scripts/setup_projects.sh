@@ -238,7 +238,7 @@ git init
 git checkout -b main
 git add .
 git commit -m "Initial backend commit"
-git remote add origin "$GITLAB_URL/$USER_USERNAME/backend.git"
+git remote add origin "http://${USER_USERNAME}:${USER_PASSWORD}@localhost:8929/$USER_USERNAME/backend.git"
 git push -f origin main
 
 # Create dev branch from main
@@ -247,14 +247,14 @@ git push -f origin dev
 
 cd ../..
 
-# 5. Push frontend code to both branches
+# 6. Push frontend code to both branches
 echo "Pushing frontend code..."
 cd repos/frontende4l
 git init
 git checkout -b main
 git add .
 git commit -m "Initial frontend commit"
-git remote add origin "$GITLAB_URL/$USER_USERNAME/frontend.git"
+git remote add origin "http://${USER_USERNAME}:${USER_PASSWORD}@localhost:8929/$USER_USERNAME/frontend.git"
 git push -f origin main
 
 # Create dev branch from main
